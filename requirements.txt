@@ -10,6 +10,6 @@ google-generativeai==0.7.2
 tiktoken
 python-jose==3.3.0
 customerio==2.1
-mplsoccer
+mplsoccer == 1.4.0
 statsmodels
 matplotlib == 3.9.2
