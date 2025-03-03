@@ -12,3 +12,4 @@ python-jose==3.3.0
 customerio==2.1
 mplsoccer
 statsmodels
+matplotlib == 3.9.2
