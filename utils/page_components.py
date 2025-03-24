@@ -96,6 +96,7 @@ def add_page_selector():
 
     st.page_link("pages/shots.py", label="Shot xG Analysis")
     st.page_link("pages/eval.py", label="Shot Evaluation")
+    st.page_link("pages/passes.py", label="Pass Evaluation")
     
 
 def add_common_page_elements():
