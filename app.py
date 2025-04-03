@@ -24,17 +24,16 @@ sidebar_container = st.sidebar.container()
 
 st.divider()
 
-displaytext = """## About Twelve GPT Educational """
+displaytext = """## About ShotGPT Educational """
 
 st.markdown(displaytext)
 
 displaytext = (
-    """TwelveGPT Educational is a framework for creating data-driven chatbots. The design and code for this project was by Matthias Green, David Sumpter and Ágúst Pálmason Morthens. \n\n"""
-    """The code is set up in a general way, to allow users to build bots which talk about data. """
-    """The football scout bot displays a distribution plot of a football player's performance in various metrics. It then starts a chat giving an AI generated summary of the player's performance and asks a variety of questions about the player. \n\n"""
-    """This is **not** the [Twelve GPT product](https://twelve.football/), but rather a (very) stripped down version of our code """
-    """to help people who would like to learn how to build bots to talk about football data. There are lots of things which [Twelve GPT](https://twelve.football/) can do, which TwelveGPT Educational cannot do. But we want more people to learn about the methods we use and to do this **TwelveGPT Educational** is an excellent alternative. We have thus used the the GNU GPL license which requires that all the released improved versions are also be free software. This will allow us to learn from each other in developing better. \n\n """
-    """If you work for a footballing organisation and would like to see a demo of the full Twelve GPT product then please email us at hello@twelve.football. """
+    """ShotGPT is a specialized application built within the TwelveGPT Educational framework, designed to analyze and describe football shots using Expected Goals (xG) predictions and natural language generation. \n\n"""
+    """The model combines a logistic regression-based xG predictor with a language model to generate engaging, human-readable narratives about shot quality, providing insights into factors like distance to goal, angle, and defensive pressure.  """
+    """This tool is intended for analysts, coaches, and enthusiasts seeking to understand and communicate shot performance in a data-driven way. \n\n"""
+    """For full details on the model architecture, evaluation, and ethical considerations, refer to the [model card](https://github.com/Peggy4444/shotsGPT/blob/main/model%20cards/model-card-shot-xG-analysis.md)."""
+    """ShotGPT is part of the open-source [TwelveGPT Educational](https://github.com/soccermatics/twelve-gpt-educational) project, which aims to make data-driven chatbots accessible to a wider audience. Explore the code and contribute to the project on [GitHub](https://github.com/Peggy4444/shotsGPT).  \n\n """
 )
 
 st.markdown(displaytext)
