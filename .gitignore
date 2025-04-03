@@ -15,3 +15,4 @@ twelve_chat.bat
 user_info.json
 clustering.ipynb
 
+secrets.toml:zone.identifier
