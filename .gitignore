@@ -16,3 +16,4 @@ user_info.json
 clustering.ipynb
 
 secrets.toml:zone.identifier
+secrets.toml:Zone.Identifier
