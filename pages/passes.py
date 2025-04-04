@@ -84,35 +84,6 @@ selected_match_name = st.sidebar.selectbox(
 match_name_to_id = {v: k for k, v in id_to_match_name.items()}
 selected_match_id = match_name_to_id[selected_match_name]
 
-# Inject custom CSS for tab styling
-st.markdown("""
-    <style>
-    /* Style for the tab headers */
-    div[data-baseweb="tab"] button {
-        background-color: #f0f4ff;
-        border: 2px solid #4A90E2;
-        border-radius: 10px 10px 0 0;
-        padding: 10px 20px;
-        margin-right: 5px;
-        color: #333;
-        font-weight: bold;
-    }
-
-    /* Active tab styling */
-    div[data-baseweb="tab"] button[aria-selected="true"] {
-        background-color: #4A90E2;
-        color: white;
-        border-bottom: none;
-    }
-
-    /* Remove default focus outline */
-    div[data-baseweb="tab"] button:focus {
-        outline: none;
-        box-shadow: none;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # Define the tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "CNN", "Regression trees"])
 
