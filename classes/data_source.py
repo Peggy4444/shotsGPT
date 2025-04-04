@@ -814,17 +814,28 @@ class Shots(Data):
 
 
 class passes(Data):
-
     def __init__(self, competition, match_id):
-        self.df_pass = self.get_data(match_id)  # Process the raw data directly
-        self.xT_Model = self.load_model(competition)  # Load the model once
-        self.parameters = self.read_model_params(competition)
-        self.df_contributions = self.weight_contributions()
-    #@st.cache_data(hash_funcs={"classes.data_source.Shots": lambda self: hash(self.raw_hash_attrs)}, ttl=5*60)
+        self.match_id = match_id
+        self.df_pass = self.get_data(match_id)
 
+        # self.xT_Model = self.load_model(competition)
+        # self.parameters = self.read_model_params(competition)
+        # self.df_contributions = self.weight_contributions()
 
     def get_data(self, match_id=None):
-        df_passes = pd.read_csv("data/df_passes.csv")
+        self.df_pass = pd.read_csv("data/df_passes.csv")
+        #print("Before filtering:", self.df_pass.shape)
+
+
+        if match_id is not None:
+            match_id = int(match_id)
+            self.df_pass["match_id"] = self.df_pass["match_id"].astype(int)
+            #print("After filtering:", self.df_pass.shape)
+            self.df_pass = self.df_pass[self.df_pass["match_id"] == match_id]
+
+
+        return self.df_pass
+
 
         
 
