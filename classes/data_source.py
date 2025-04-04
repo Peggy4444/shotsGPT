@@ -812,6 +812,20 @@ class Shots(Data):
 
         return self.data_point_class(id=id,ser_metrics=ser_metrics)
 
+
+class passes(Data):
+
+    def __init__(self, competition, match_id):
+        self.df_pass = self.get_data(match_id)  # Process the raw data directly
+        self.xT_Model = self.load_model(competition)  # Load the model once
+        self.parameters = self.read_model_params(competition)
+        self.df_contributions = self.weight_contributions()
+    #@st.cache_data(hash_funcs={"classes.data_source.Shots": lambda self: hash(self.raw_hash_attrs)}, ttl=5*60)
+
+
+    def get_data(self, match_id=None):
+        df_passes = pd.read_csv("data/df_passes.csv")
+
         
 
 
