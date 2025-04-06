@@ -84,40 +84,60 @@ selected_match_name = st.sidebar.selectbox(
 match_name_to_id = {v: k for k, v in id_to_match_name.items()}
 selected_match_id = match_name_to_id[selected_match_name]
 
+# Create a dropdown to select a shot ID from the available shot IDs in shots.df_shots['id']
+
+pass_data = passes(selected_competition,selected_match_id)
+pass_df = pass_data.df_pass
+
+# Ensure pass_df['id'] is of type int (optional but good practice)
+pass_df['id'] = pass_df['id'].astype(int)
+
+# Dropdown showing actual pass IDs
+selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id'].tolist())
+
+
 # Define the tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "CNN", "Regression trees"])
 
 # Sample content
 with tab1:
     st.header("Logistic Regression")
+    df_contributions = pass_data.df_contributions
+
+    model = passes.load_model(selected_competition, show_summary=True)
+
+    pass_df = pass_df.astype(str)
+    st.write(pass_df)
+    
+    contributions_logistic = df_contributions.astype(str)
+    st.write(contributions_logistic)
+
 
 with tab2:
     st.header("xNN")
+    pass_df = pass_df.astype(str)
+    st.write(pass_df)
+    model = passes.load_model(selected_competition, show_summary=False)
 
 with tab3:
     st.header("XGBoost")
+    pass_df = pass_df.astype(str)
+    st.write(pass_df)
+    model = passes.load_model(selected_competition, show_summary=False)
 
 with tab4:
     st.header("CNN")
+    pass_df = pass_df.astype(str)
+    st.write(pass_df)
+    model = passes.load_model(selected_competition, show_summary=False)
+
 
 with tab5:
     st.header("Regression trees")
-
-
-pass_data = passes(selected_competition, selected_match_id)
-pass_df = pass_data.df_pass
-
-pass_df = pass_df.astype(str)
-st.write(pass_df)
+    pass_df = pass_df.astype(str)
+    st.write(pass_df)
+    model = passes.load_model(selected_competition, show_summary=False)
 
 
 
 
-
-
-    
-
-
-   
-
-    

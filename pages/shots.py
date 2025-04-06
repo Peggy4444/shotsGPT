@@ -52,7 +52,6 @@ from utils.page_components import (
     add_common_page_elements
 )
 
-
 from classes.chat import PlayerChat
 
 from utils.page_components import add_common_page_elements
@@ -176,7 +175,6 @@ chat.display_messages()
 chat.save_state()
 
 #visual.add_title_from_match_player(match, selected_players)
-
 
 
 

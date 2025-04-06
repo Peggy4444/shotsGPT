@@ -8,6 +8,8 @@ import json
 import datetime
 from scipy.stats import zscore
 import os
+from statsmodels.api import load
+
 
 from itertools import accumulate
 from pathlib import Path
@@ -814,13 +816,12 @@ class Shots(Data):
 
 
 class passes(Data):
-    def __init__(self, competition, match_id):
+    def __init__(self,competition,match_id):
         self.match_id = match_id
         self.df_pass = self.get_data(match_id)
-
-        # self.xT_Model = self.load_model(competition)
-        # self.parameters = self.read_model_params(competition)
-        # self.df_contributions = self.weight_contributions()
+        self.xT_Model = self.load_model(competition,show_summary=False)
+        self.parameters = self.read_model_params(competition)
+        self.df_contributions = self.weight_contributions()
 
     def get_data(self, match_id=None):
         self.df_pass = pd.read_csv("data/df_passes.csv")
@@ -831,10 +832,113 @@ class passes(Data):
             match_id = int(match_id)
             self.df_pass["match_id"] = self.df_pass["match_id"].astype(int)
             #print("After filtering:", self.df_pass.shape)
-            self.df_pass = self.df_pass[self.df_pass["match_id"] == match_id]
+            self.df_pass = self.df_pass[self.df_pass["match_id"] == match_id].reset_index(drop=True)
 
 
         return self.df_pass
+    
+    def read_model_params(self, competition):
+        competitions_dict_prams = {"Allsevenskan 2022": "data/params_logistic.csv",
+    "Allsevenskan 2023": "data/params_logistic.csv"}
+
+        file_path = competitions_dict_prams.get(competition)
+
+        if not file_path:
+            st.error("Parameter file not found for the selected competition.")
+            return None
+        try:
+            parameters = pd.read_csv(file_path)
+            parameters = parameters.rename(columns={
+            'beta_coeff': 'Parameter',
+            'value': 'Value'
+        })
+            return parameters
+
+        except FileNotFoundError:
+            st.error(f"File not found: {file_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error reading parameter file: {e}")
+            return None
+
+
+    def weight_contributions(self):
+        df_pass = self.df_pass # Work with a copy to avoid altering the original dataframe
+        parameters = self.parameters
+        self.intercept = parameters[parameters['Parameter'] == 'Intercept']['Value'].values[0]
+        
+        # Exclude intercept from parameter calculations
+        self.parameters = parameters[parameters['Parameter'] != 'Intercept']
+
+        # Calculate contributions for all shots (mean-centering requires all data)
+        for _, row in self.parameters.iterrows():
+            param_name = row['Parameter']
+            param_value = row['Value']
+            contribution_col = f"{param_name}_contribution"
+
+            # Calculate the contribution
+            df_pass[contribution_col] = df_pass[param_name] * param_value
+
+            # Mean-center the contributions
+            df_pass[contribution_col] -= df_pass[contribution_col].mean()
+
+        # Prepare contributions dataframe
+        df_contribution = df_pass[['id', 'match_id'] + [col for col in df_pass.columns if 'contribution' in col]]
+
+        # Calculate xG for each shot individually
+        xG_values = []
+        for _, shot in df_pass.iterrows():
+            linear_combination = self.intercept
+
+            # Add contributions from all parameters for this shot
+            for _, param in self.parameters.iterrows():
+                param_name = param['Parameter']
+                param_value = param['Value']
+                linear_combination += shot[param_name] * param_value
+            # Apply logistic function to calculate xG
+            xG = 1 / (1 + np.exp(-linear_combination))
+            xG_values.append(xG)
+
+        # Add xG values to df_shots and df_contribution
+        df_pass['xT'] = xG_values
+        df_contribution['xT'] = xG_values
+
+        return df_contribution
+    
+
+    @staticmethod
+    def load_model(competition, show_summary=False):
+
+        competitions_dict = {
+            "Allsevenskan 2022": "data/logistic_model_joblib.sav",
+            "Allsevenskan 2023": "data/logistic_model_joblib.sav"
+        }
+
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            if show_summary:
+                with st.expander(f"Model Summary for {competition}"):
+                    st.text(model.summary().as_text())
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None
+
+
+    
+
+
 
 
         
