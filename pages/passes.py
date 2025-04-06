@@ -88,6 +88,8 @@ selected_match_id = match_name_to_id[selected_match_name]
 
 pass_data = passes(selected_competition,selected_match_id)
 pass_df = pass_data.df_pass
+pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col]]
+
 
 # Ensure pass_df['id'] is of type int (optional but good practice)
 pass_df['id'] = pass_df['id'].astype(int)
@@ -102,13 +104,16 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost",
 # Sample content
 with tab1:
     st.header("Logistic Regression")
-    df_contributions = pass_data.df_contributions
 
     model = passes.load_model(selected_competition, show_summary=True)
-
+    
     pass_df = pass_df.astype(str)
     st.write(pass_df)
     
+    
+    st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
+    
+    df_contributions = pass_data.df_contributions
     contributions_logistic = df_contributions.astype(str)
     st.write(contributions_logistic)
 
