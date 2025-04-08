@@ -98,11 +98,7 @@ pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col 
 # Dropdown showing actual pass IDs
 selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id'].tolist())
 
-if selected_pass_id is not None:
-    pass_id = pass_df.iloc[0]['id']  # Retrieve the shot_id for the selection
-else:
-    st.warning("No matching shot found.")
-
+pass_id = selected_pass_id
 
 # Define the tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "CNN", "Regression trees"])
@@ -124,32 +120,36 @@ with tab1:
     metrics = [col for col in df_contributions.columns if col not in excluded_columns]
 
    # Build and show plot
+    st.markdown("<h3 style='font-size:24px; color:black;'>Logistic contribution plot</h3>", unsafe_allow_html=True)
     visuals_logistic = PassContributionPlot_Logistic(df_contributions=df_contributions,df_passes=pass_df,metrics=metrics)
     visuals_logistic.add_passes(pass_df,metrics,selected_pass_id=selected_pass_id)
-    visuals_logistic.add_pass(contribution_df=df_contributions, pass_df=pass_df, pass_id=pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
+    visuals_logistic.add_pass(contribution_df=df_contributions, pass_df=pass_df, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
     visuals_logistic.show()
 
 with tab2:
     st.header("xNN")
-    st.write(pass_df)
+    pass_df_xnn = pass_df.drop(['speed_difference'],axis=1)
+    st.write(pass_df_xnn.astype(str))
     model = passes.load_model(selected_competition, show_summary=False)
 
 with tab3:
     st.header("XGBoost")
-    st.write(pass_df.astype(str))
+    pass_df_xgboost = pass_df.drop(['speed_difference'],axis=1)
+    st.write(pass_df_xgboost.astype(str))
     model = passes.load_model(selected_competition, show_summary=False)
 
 with tab4:
     st.header("CNN")
-    st.write(pass_df.astype(str))
+    pass_df_cnn = pass_df.drop(['speed_difference'],axis=1)
+    st.write(pass_df_cnn.astype(str))
     model = passes.load_model(selected_competition, show_summary=False)
 
 
 with tab5:
     st.header("Regression trees")
-    st.write(pass_df.astype(str))
+    pass_df_trees = pass_df.drop(['speed_difference'],axis=1)
+    st.write(pass_df_trees.astype(str))
     model = passes.load_model(selected_competition, show_summary=False)
-
 
 
 

@@ -607,9 +607,149 @@ class ShotContributionPlot(DistributionPlot):
         )
 
 
+class PassContributionPlot_Logistic(DistributionPlot):
+    def __init__(self, df_contributions, df_passes, metrics, **kwargs):
+        self.df_contributions = df_contributions
+        self.df_passes = df_passes
+        self.metrics = metrics
+
+        # Validate inputs
+        for metric in metrics:
+            if metric not in df_contributions.columns:
+                raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
+
+        super().__init__(columns=metrics, annotate=False, **kwargs)
+
+    # def add_pass(self, contribution_df, pass_df, pass_id, metrics, selected_pass_id):
+
+    #     # Filter using the cleaned ID
+    #     filtered_contrib = contribution_df[contribution_df["id"] == pass_id]
+    #     filtered_pass = pass_df[pass_df["id"] == pass_id]
+
+    #     if filtered_contrib.empty or filtered_pass.empty:
+    #         raise ValueError(f"Pass ID {pass_id} not found.")
+    #     if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+    #         raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+    #     contributions = filtered_contrib.iloc[0][metrics]
+    #     feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+    #     feature_values = filtered_pass.iloc[0][feature_columns]
+
+    #     print(f"Contributions for {pass_id}:", contributions.to_dict())
+    #     print(f"Feature values for {pass_id}:", feature_values.to_dict())
+
+
+    #     # Simple hover text
+    #     hover_text = [f"Pass ID: {selected_pass_id}"]
+    #     for feature_column in feature_columns:
+    #         feature_value = feature_values[feature_column]
+    #         hover_text.append(f"{format_metric(feature_column)}: {feature_value}")
+
+    #     self.add_data_point(
+    #         ser_plot=contributions,
+    #         plots="",
+    #         name=f"Pass #{selected_pass_id}",
+    #         hover="",
+    #         hover_string="<br>".join(hover_text)
+    #     )
+
+    #     # Optional: Annotate features
+    #     for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+    #         feature_value = feature_values[feature_column]
+    #         self.fig.add_annotation(
+    #             x=contributions[metric],
+    #             y=i * 1.0 + 0.5,
+    #             xanchor="center",
+    #             text=f"{format_metric(feature_column)}: {feature_value}",
+    #             showarrow=False,
+    #             font={
+    #                 "color": rgb_to_color(self.dark_green),
+    #                 "family": "Gilroy-Light",
+    #                 "size": 12 * self.font_size_multiplier,
+    #             },
+    #             align="center",
+    #         )
+
+    def add_pass(self, contribution_df, pass_df, pass_id, metrics, selected_pass_id):
+        # Filter contributions and features for the selected pass
+        filtered_contrib = contribution_df[contribution_df["id"] == pass_id]
+        filtered_pass = pass_df[pass_df["id"] == pass_id]
+
+        if filtered_contrib.empty or filtered_pass.empty:
+            raise ValueError(f"Pass ID {pass_id} not found.")
+        if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+            raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+        contributions = filtered_contrib.iloc[0][metrics]
+        feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+        feature_values = filtered_pass.iloc[0][feature_columns]
+
+        # Construct hover text
+        hover_text = [f"Pass ID: {selected_pass_id}"]
+        for feature_column in feature_columns:
+            feature_value = feature_values[feature_column]
+            hover_text.append(f"{format_metric(feature_column)}: {feature_value:.2f}")
+
+        # Add contributions to the plot
+        self.add_data_point(
+            ser_plot=contributions,
+            plots="",
+            name=f"Pass #{selected_pass_id}",
+            hover="",
+            hover_string="<br>".join(hover_text)
+        )
+
+        # Annotate features
+        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+            feature_value = feature_values[feature_column]
+            self.fig.add_annotation(
+                x=contributions[metric],
+                y=i * 1.0 + 0.5,
+                xanchor="center",
+                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+                showarrow=False,
+                font={
+                "color": rgb_to_color(self.dark_green),
+                "family": "Gilroy-Light",
+                "size": 12 * self.font_size_multiplier,
+                },
+            align="center",
+            )
 
 
 
+    def add_passes(self, df_passes, metrics, selected_pass_id):
+        hover_texts = []
+
+        for _, row in self.df_contributions.iterrows():
+            hover_text = []
+            pass_id = row["id"]
+            pass_number = selected_pass_id
+            #hover_text.append(f"Pass #{pass_number}")
+            pass_features = df_passes[df_passes["id"] == pass_id]
+            if not pass_features.empty:
+                pass_features = pass_features.iloc[0]
+
+                for metric in metrics:
+                    feature_column = metric.replace("_contribution", "")
+                    if feature_column in pass_features:
+                        value = pass_features[feature_column]
+                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+            else:
+                hover_text.append("No matching pass data")
+
+            hover_texts.append("<br>".join(hover_text))
+
+        self.add_group_data(
+            df_plot=self.df_contributions,
+            plots="",
+            names=hover_texts,
+            hover="",
+            hover_string="",
+            legend="All Passes",
+        )
+
+    
 
 class PitchVisual(Visual):
     def __init__(self, metric, pdf = False, *args, **kwargs):
