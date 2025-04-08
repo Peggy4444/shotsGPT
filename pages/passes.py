@@ -35,6 +35,9 @@ import os
 from utils.utils import normalize_text
 
 from classes.data_source import passes
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic
+
+
 
 
 # Function to load and inject custom CSS from an external file
@@ -88,14 +91,17 @@ selected_match_id = match_name_to_id[selected_match_name]
 
 pass_data = passes(selected_competition,selected_match_id)
 pass_df = pass_data.df_pass
-pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col]]
+pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col and col != "xT"]]
 
 
-# Ensure pass_df['id'] is of type int (optional but good practice)
-pass_df['id'] = pass_df['id'].astype(int)
 
 # Dropdown showing actual pass IDs
 selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id'].tolist())
+
+if selected_pass_id is not None:
+    pass_id = pass_df.iloc[0]['id']  # Retrieve the shot_id for the selection
+else:
+    st.warning("No matching shot found.")
 
 
 # Define the tabs
@@ -107,40 +113,41 @@ with tab1:
 
     model = passes.load_model(selected_competition, show_summary=True)
     
-    pass_df = pass_df.astype(str)
-    st.write(pass_df)
-    
+    st.write(pass_df.astype(str))
     
     st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
     
     df_contributions = pass_data.df_contributions
-    contributions_logistic = df_contributions.astype(str)
-    st.write(contributions_logistic)
+    st.write(df_contributions.astype(str))
 
+    excluded_columns = ['xT','id', 'match_id']
+    metrics = [col for col in df_contributions.columns if col not in excluded_columns]
+
+   # Build and show plot
+    visuals_logistic = PassContributionPlot_Logistic(df_contributions=df_contributions,df_passes=pass_df,metrics=metrics)
+    visuals_logistic.add_passes(pass_df,metrics,selected_pass_id=selected_pass_id)
+    visuals_logistic.add_pass(contribution_df=df_contributions, pass_df=pass_df, pass_id=pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
+    visuals_logistic.show()
 
 with tab2:
     st.header("xNN")
-    pass_df = pass_df.astype(str)
     st.write(pass_df)
     model = passes.load_model(selected_competition, show_summary=False)
 
 with tab3:
     st.header("XGBoost")
-    pass_df = pass_df.astype(str)
-    st.write(pass_df)
+    st.write(pass_df.astype(str))
     model = passes.load_model(selected_competition, show_summary=False)
 
 with tab4:
     st.header("CNN")
-    pass_df = pass_df.astype(str)
-    st.write(pass_df)
+    st.write(pass_df.astype(str))
     model = passes.load_model(selected_competition, show_summary=False)
 
 
 with tab5:
     st.header("Regression trees")
-    pass_df = pass_df.astype(str)
-    st.write(pass_df)
+    st.write(pass_df.astype(str))
     model = passes.load_model(selected_competition, show_summary=False)
 
 
