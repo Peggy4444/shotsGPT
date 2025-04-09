@@ -34,13 +34,10 @@ import tiktoken
 import os
 from utils.utils import normalize_text
 
-from classes.data_source import passes
+from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual_logistic
-
-
-
 
 # Function to load and inject custom CSS from an external file
 def load_css(file_name):
@@ -141,7 +138,7 @@ with tab2:
 with tab3:
     st.header("XGBoost")
 
-    model = model = passes.load_xgboost_model(selected_competition)
+    model = Passes.load_xgboost_model(selected_competition)
 
     pass_df_xgboost = pass_df.drop(['speed_difference', 'possession_xG_target'],axis=1)
 
@@ -150,7 +147,7 @@ with tab3:
     st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
     
     
-    feature_contrib_df = passes.get_feature_contributions(pass_df_xgboost, model)
+    feature_contrib_df = Passes.get_feature_contributions(pass_df_xgboost, model)
     
     st.write(feature_contrib_df.astype(str))
 

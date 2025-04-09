@@ -972,7 +972,7 @@ class Passes(Data):
 
         # 1. Define features to be used for prediction (exclude non-feature columns)
         feature_cols = [col for col in df_passes.columns if col not in ['id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
-       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season', 'possession_xG_target']]
+       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season', 'possession_xG_target','pass_recipient_id']]
 
         # 2. Extract X (feature matrix)
         X = df_passes[feature_cols]
