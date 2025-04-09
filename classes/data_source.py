@@ -31,6 +31,8 @@ pd.options.mode.chained_assignment = None
 warnings.filterwarnings('ignore')
 import pickle 
 from joblib import load
+import shap
+import xgboost as xgb
 
 
 import classes.data_point as data_point
@@ -934,9 +936,72 @@ class passes(Data):
         except Exception as e:
             st.error(f"Error loading model: {e}")
             return None
+        
+
+    def load_xgboost_model(competition):
+        competitions_dict = {
+            "Allsevenskan 2022": "data/XGBoost_model.sav",
+            "Allsevenskan 2023": "data/XGBoost_model.sav"
+        }
+
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            return model
+        
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        
+        except Exception as e:
+            st.error(f"Error loading XGBoost model: {e}")
+            return None  
+
+    
+
+
+    def get_feature_contributions(df_passes, model):
+    
+
+        # 1. Define features to be used for prediction (exclude non-feature columns)
+        feature_cols = [col for col in df_passes.columns if col not in ['id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
+       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season', 'possession_xG_target']]
+
+        # 2. Extract X (feature matrix)
+        X = df_passes[feature_cols]
+
+        # 3. Predict xT probabilities using the classifier
+        xT_probabilities = model.predict_proba(X)[:, 1]
+
+        # 4. Compute SHAP values
+        explainer = shap.Explainer(model, X)
+        shap_values = explainer(X)
+
+        # 5. Build SHAP DataFrame
+        shap_df = pd.DataFrame(shap_values.values, columns=feature_cols, index=df_passes.index)
+
+        # 6. Add id, match_id, and xT prediction at the beginning
+        shap_df.insert(0, 'xT_predicted', xT_probabilities)
+        shap_df.insert(0, 'match_id', df_passes['match_id'].values)
+        shap_df.insert(0, 'id', df_passes['id'].values)
+        
+        # 7. Reorder columns: id, match_id, all SHAP features, xT_predicted
+        ordered_cols = ['id', 'match_id'] + feature_cols + ['xT_predicted']
+        shap_df = shap_df[ordered_cols]
+
+        return shap_df
+    
+    
+
 
 
     
+
 
 
 

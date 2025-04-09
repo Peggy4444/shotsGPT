@@ -35,7 +35,7 @@ import os
 from utils.utils import normalize_text
 
 from classes.data_source import passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
 
 
 
@@ -134,9 +134,37 @@ with tab2:
 
 with tab3:
     st.header("XGBoost")
-    pass_df_xgboost = pass_df.drop(['speed_difference'],axis=1)
+
+    model = model = passes.load_xgboost_model(selected_competition)
+
+    pass_df_xgboost = pass_df.drop(['speed_difference', 'possession_xG_target'],axis=1)
+
     st.write(pass_df_xgboost.astype(str))
-    model = passes.load_model(selected_competition, show_summary=False)
+
+    st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
+    
+    
+    feature_contrib_df = passes.get_feature_contributions(pass_df_xgboost, model)
+    
+    st.write(feature_contrib_df.astype(str))
+
+    # Show the XGBoost feature contribution plot
+    st.markdown("<h3 style='font-size:24px; color:black;'>XGBoost contribution plot</h3>", unsafe_allow_html=True)
+
+    excluded_columns = ['xT_predicted','id', 'match_id']
+    metrics = [col for col in feature_contrib_df.columns if col not in excluded_columns]
+
+    visuals_xgboost = PassContributionPlot_XGBoost(feature_contrib_df=feature_contrib_df,pass_df_xgboost=pass_df_xgboost,metrics=metrics)
+    visuals_xgboost.add_passes(pass_df_xgboost, metrics, selected_pass_id=selected_pass_id)
+    visuals_xgboost.add_pass(feature_contrib_df=feature_contrib_df,pass_df_xgboost=pass_df_xgboost,
+    pass_id=selected_pass_id,metrics=metrics,selected_pass_id=selected_pass_id)
+
+    visuals_xgboost.show()
+
+    
+    
+
+
 
 with tab4:
     st.header("CNN")
