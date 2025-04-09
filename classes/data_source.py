@@ -817,16 +817,17 @@ class Shots(Data):
         return self.data_point_class(id=id,ser_metrics=ser_metrics)
 
 
-class passes(Data):
+class Passes(Data):
     def __init__(self,competition,match_id):
         self.match_id = match_id
-        self.df_pass = self.get_data(match_id)
+        self.df_pass,self.df_tracking = self.get_data(match_id)
         self.xT_Model = self.load_model(competition,show_summary=False)
         self.parameters = self.read_model_params(competition)
         self.df_contributions = self.weight_contributions()
 
     def get_data(self, match_id=None):
         self.df_pass = pd.read_csv("data/df_passes.csv")
+        self.df_tracking = pd.read_csv("data/tracking_data.csv")
         #print("Before filtering:", self.df_pass.shape)
 
 
@@ -836,8 +837,9 @@ class passes(Data):
             #print("After filtering:", self.df_pass.shape)
             self.df_pass = self.df_pass[self.df_pass["match_id"] == match_id].reset_index(drop=True)
 
+        return self.df_pass,self.df_tracking
+    
 
-        return self.df_pass
     
     def read_model_params(self, competition):
         competitions_dict_prams = {"Allsevenskan 2022": "data/params_logistic.csv",

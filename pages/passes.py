@@ -34,8 +34,13 @@ import tiktoken
 import os
 from utils.utils import normalize_text
 
+<<<<<<< HEAD
 from classes.data_source import passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
+=======
+from classes.data_source import Passes
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual_logistic
+>>>>>>> d7f33c1 (tracking dataset,event dataset updated and pitch visual plots)
 
 
 
@@ -89,10 +94,10 @@ selected_match_id = match_name_to_id[selected_match_name]
 
 # Create a dropdown to select a shot ID from the available shot IDs in shots.df_shots['id']
 
-pass_data = passes(selected_competition,selected_match_id)
+pass_data = Passes(selected_competition,selected_match_id)
 pass_df = pass_data.df_pass
+tracking_df = pass_data.df_tracking
 pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col and col != "xT"]]
-
 
 
 # Dropdown showing actual pass IDs
@@ -107,7 +112,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost",
 with tab1:
     st.header("Logistic Regression")
 
-    model = passes.load_model(selected_competition, show_summary=True)
+    model = Passes.load_model(selected_competition, show_summary=True)
     
     st.write(pass_df.astype(str))
     
@@ -126,11 +131,15 @@ with tab1:
     visuals_logistic.add_pass(contribution_df=df_contributions, pass_df=pass_df, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
     visuals_logistic.show()
 
+    visuals = PassVisual_logistic(metric=None)
+    visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
+    visuals.show()
+
 with tab2:
     st.header("xNN")
     pass_df_xnn = pass_df.drop(['speed_difference'],axis=1)
     st.write(pass_df_xnn.astype(str))
-    model = passes.load_model(selected_competition, show_summary=False)
+    model = Passes.load_model(selected_competition, show_summary=False)
 
 with tab3:
     st.header("XGBoost")
@@ -140,6 +149,7 @@ with tab3:
     pass_df_xgboost = pass_df.drop(['speed_difference', 'possession_xG_target'],axis=1)
 
     st.write(pass_df_xgboost.astype(str))
+<<<<<<< HEAD
 
     st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
     
@@ -165,19 +175,22 @@ with tab3:
     
 
 
+=======
+    model = Passes.load_model(selected_competition, show_summary=False)
+>>>>>>> d7f33c1 (tracking dataset,event dataset updated and pitch visual plots)
 
 with tab4:
     st.header("CNN")
     pass_df_cnn = pass_df.drop(['speed_difference'],axis=1)
     st.write(pass_df_cnn.astype(str))
-    model = passes.load_model(selected_competition, show_summary=False)
+    model = Passes.load_model(selected_competition, show_summary=False)
 
 
 with tab5:
     st.header("Regression trees")
     pass_df_trees = pass_df.drop(['speed_difference'],axis=1)
     st.write(pass_df_trees.astype(str))
-    model = passes.load_model(selected_competition, show_summary=False)
+    model = Passes.load_model(selected_competition, show_summary=False)
 
 
 
