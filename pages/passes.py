@@ -34,13 +34,10 @@ import tiktoken
 import os
 from utils.utils import normalize_text
 
-<<<<<<< HEAD
 from classes.data_source import passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
-=======
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual_logistic
->>>>>>> d7f33c1 (tracking dataset,event dataset updated and pitch visual plots)
 
 
 
@@ -149,7 +146,6 @@ with tab3:
     pass_df_xgboost = pass_df.drop(['speed_difference', 'possession_xG_target'],axis=1)
 
     st.write(pass_df_xgboost.astype(str))
-<<<<<<< HEAD
 
     st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
     
@@ -170,14 +166,7 @@ with tab3:
     pass_id=selected_pass_id,metrics=metrics,selected_pass_id=selected_pass_id)
 
     visuals_xgboost.show()
-
-    
-    
-
-
-=======
     model = Passes.load_model(selected_competition, show_summary=False)
->>>>>>> d7f33c1 (tracking dataset,event dataset updated and pitch visual plots)
 
 with tab4:
     st.header("CNN")
