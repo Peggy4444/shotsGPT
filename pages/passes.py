@@ -141,7 +141,17 @@ with tab5:
     st.header("Regression trees")
     pass_df = pass_df.astype(str)
     st.write(pass_df)
-    model = passes.load_model(selected_competition, show_summary=False)
+    #model_mimic = passes.load_mimic_models(selected_competition)
+    model_mimic = pass_data.load_mimic_models(selected_competition)
+
+
+        
+    st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from tree model</h3>", 
+                unsafe_allow_html=True)
+    
+    #    # We just read pass_data.df_contributions_mimic 
+    df_contrib_mimic = pass_data.df_contributions_mimic
+    st.write(df_contrib_mimic.astype(str)) 
 
 
 
