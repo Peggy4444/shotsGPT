@@ -189,7 +189,7 @@ class DistributionPlot(Visual):
         return (-1,1)
 
 
-    def _setup_axes(self, labels=["Negative", "Average Contribution to xG", "Positive"]):
+    def _setup_axes(self, labels=["Negative", "Average Contribution to xT", "Positive"]):
 
         x_min, x_max = self._get_x_range()  # Function to calculate min and max x values
         dynamic_width = max(100, (x_max - x_min) * 100)
@@ -798,6 +798,95 @@ class PassContributionPlot_XGBoost(DistributionPlot):
         )
 
     
+        # Validate inputs
+        for metric in metrics:
+            if metric not in feature_contrib_df.columns:
+                raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
+
+        super().__init__(columns=metrics, annotate=False, **kwargs)  
+
+    def add_pass(self, feature_contrib_df, pass_df_xgboost, pass_id, metrics, selected_pass_id):
+        # Filter contributions and features for the selected pass
+        filtered_contrib = feature_contrib_df[feature_contrib_df["id"] == pass_id]
+        filtered_pass = pass_df_xgboost[pass_df_xgboost["id"] == pass_id]
+
+        if filtered_contrib.empty or filtered_pass.empty:
+            raise ValueError(f"Pass ID {pass_id} not found.")
+        if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+            raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+        contributions = filtered_contrib.iloc[0][metrics]
+        feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+        feature_values = filtered_pass.iloc[0][feature_columns]
+
+        # Construct hover text
+        hover_text = [f"Pass ID: {selected_pass_id}"]
+        for feature_column in feature_columns:
+            feature_value = feature_values[feature_column]
+            hover_text.append(f"{format_metric(feature_column)}: {feature_value:.2f}")
+
+        # Add contributions to the plot
+        self.add_data_point(
+            ser_plot=contributions,
+            plots="",
+            name=f"Pass #{selected_pass_id}",
+            hover="",
+            hover_string="<br>".join(hover_text)
+        )
+
+        # Annotate features
+        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+            feature_value = feature_values[feature_column]
+            self.fig.add_annotation(
+                x=contributions[metric],
+                #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
+
+                y=i * 1.0 + 0.5,
+                xanchor="center",
+                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+                showarrow=False,
+                font={
+                "color": rgb_to_color(self.dark_green),
+                "family": "Gilroy-Light",
+                "size": 11 * self.font_size_multiplier,
+                },
+            align="center",
+            )
+
+
+
+    def add_passes(self, pass_df_xgboost, metrics, selected_pass_id):
+        hover_texts = []
+
+        for _, row in self.feature_contrib_df.iterrows():
+            hover_text = []
+            pass_id = row["id"]
+            pass_number = selected_pass_id
+            #hover_text.append(f"Pass #{pass_number}")
+            pass_features = pass_df_xgboost[pass_df_xgboost["id"] == pass_id]
+            if not pass_features.empty:
+                pass_features = pass_features.iloc[0]
+
+                for metric in metrics:
+                    feature_column = metric.replace("_contribution", "")
+                    if feature_column in pass_features:
+                        value = pass_features[feature_column]
+                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+            else:
+                hover_text.append("No matching pass data")
+
+            hover_texts.append("<br>".join(hover_text))
+
+        self.add_group_data(
+            df_plot=self.feature_contrib_df,
+            plots="",
+            names=hover_texts,
+            hover="",
+            hover_string="",
+            legend="All Passes",
+        )
+
+      
 class PitchVisual(Visual):
     def __init__(self, metric, pdf = False, *args, **kwargs):
         self.metric = metric
