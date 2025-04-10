@@ -607,9 +607,344 @@ class ShotContributionPlot(DistributionPlot):
         )
 
 
+class PassContributionPlot_Logistic(DistributionPlot):
+    def __init__(self, df_contributions, df_passes, metrics, **kwargs):
+        self.df_contributions = df_contributions
+        self.df_passes = df_passes
+        self.metrics = metrics
+
+        # Validate inputs
+        for metric in metrics:
+            if metric not in df_contributions.columns:
+                raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
+
+        super().__init__(columns=metrics, annotate=False, **kwargs)
+
+
+    # def add_pass(self, contribution_df, pass_df, pass_id, metrics, selected_pass_id):
+
+    #     # Filter using the cleaned ID
+    #     filtered_contrib = contribution_df[contribution_df["id"] == pass_id]
+    #     filtered_pass = pass_df[pass_df["id"] == pass_id]
+
+    #     if filtered_contrib.empty or filtered_pass.empty:
+    #         raise ValueError(f"Pass ID {pass_id} not found.")
+    #     if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+    #         raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+    #     contributions = filtered_contrib.iloc[0][metrics]
+    #     feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+    #     feature_values = filtered_pass.iloc[0][feature_columns]
+
+    #     print(f"Contributions for {pass_id}:", contributions.to_dict())
+    #     print(f"Feature values for {pass_id}:", feature_values.to_dict())
+
+
+    #     # Simple hover text
+    #     hover_text = [f"Pass ID: {selected_pass_id}"]
+    #     for feature_column in feature_columns:
+    #         feature_value = feature_values[feature_column]
+    #         hover_text.append(f"{format_metric(feature_column)}: {feature_value}")
+
+    #     self.add_data_point(
+    #         ser_plot=contributions,
+    #         plots="",
+    #         name=f"Pass #{selected_pass_id}",
+    #         hover="",
+    #         hover_string="<br>".join(hover_text)
+    #     )
+
+    #     # Optional: Annotate features
+    #     for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+    #         feature_value = feature_values[feature_column]
+    #         self.fig.add_annotation(
+    #             x=contributions[metric],
+    #             y=i * 1.0 + 0.5,
+    #             xanchor="center",
+    #             text=f"{format_metric(feature_column)}: {feature_value}",
+    #             showarrow=False,
+    #             font={
+    #                 "color": rgb_to_color(self.dark_green),
+    #                 "family": "Gilroy-Light",
+    #                 "size": 12 * self.font_size_multiplier,
+    #             },
+    #             align="center",
+    #         )
+
+    def add_pass(self, contribution_df, pass_df, pass_id, metrics, selected_pass_id):
+        # Filter contributions and features for the selected pass
+        filtered_contrib = contribution_df[contribution_df["id"] == pass_id]
+        filtered_pass = pass_df[pass_df["id"] == pass_id]
+
+        if filtered_contrib.empty or filtered_pass.empty:
+            raise ValueError(f"Pass ID {pass_id} not found.")
+        if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+            raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+        contributions = filtered_contrib.iloc[0][metrics]
+        feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+        feature_values = filtered_pass.iloc[0][feature_columns]
+
+        # Construct hover text
+        hover_text = [f"Pass ID: {selected_pass_id}"]
+        for feature_column in feature_columns:
+            feature_value = feature_values[feature_column]
+            hover_text.append(f"{format_metric(feature_column)}: {feature_value:.2f}")
+
+        # Add contributions to the plot
+        self.add_data_point(
+            ser_plot=contributions,
+            plots="",
+            name=f"Pass #{selected_pass_id}",
+            hover="",
+            hover_string="<br>".join(hover_text)
+        )
+
+        # Annotate features
+        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+            feature_value = feature_values[feature_column]
+            self.fig.add_annotation(
+                x=contributions[metric],
+                y=i * 1.0 + 0.5,
+                xanchor="center",
+                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+                showarrow=False,
+                font={
+                "color": rgb_to_color(self.dark_green),
+                "family": "Gilroy-Light",
+                "size": 12 * self.font_size_multiplier,
+                },
+            align="center",
+            )
 
 
 
+    def add_passes(self, df_passes, metrics, selected_pass_id):
+        hover_texts = []
+
+        for _, row in self.df_contributions.iterrows():
+            hover_text = []
+            pass_id = row["id"]
+            pass_number = selected_pass_id
+            #hover_text.append(f"Pass #{pass_number}")
+            pass_features = df_passes[df_passes["id"] == pass_id]
+            if not pass_features.empty:
+                pass_features = pass_features.iloc[0]
+
+                for metric in metrics:
+                    feature_column = metric.replace("_contribution", "")
+                    if feature_column in pass_features:
+                        value = pass_features[feature_column]
+                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+            else:
+                hover_text.append("No matching pass data")
+
+            hover_texts.append("<br>".join(hover_text))
+
+        self.add_group_data(
+            df_plot=self.df_contributions,
+            plots="",
+            names=hover_texts,
+            hover="",
+            hover_string="",
+            legend="All Passes",
+        )
+
+
+
+class PassContributionPlot_XGBoost(DistributionPlot):
+    def __init__(self, feature_contrib_df, pass_df_xgboost, metrics, **kwargs):
+        self.feature_contrib_df = feature_contrib_df
+        self.pass_df_xgboost = pass_df_xgboost
+        self.metrics = metrics
+
+        # Validate inputs
+        for metric in metrics:
+            if metric not in feature_contrib_df.columns:
+                raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
+
+        super().__init__(columns=metrics, annotate=False, **kwargs)  
+
+    def add_pass(self, feature_contrib_df, pass_df_xgboost, pass_id, metrics, selected_pass_id):
+        # Filter contributions and features for the selected pass
+        filtered_contrib = feature_contrib_df[feature_contrib_df["id"] == pass_id]
+        filtered_pass = pass_df_xgboost[pass_df_xgboost["id"] == pass_id]
+
+        if filtered_contrib.empty or filtered_pass.empty:
+            raise ValueError(f"Pass ID {pass_id} not found.")
+        if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+            raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+        contributions = filtered_contrib.iloc[0][metrics]
+        feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+        feature_values = filtered_pass.iloc[0][feature_columns]
+
+        # Construct hover text
+        hover_text = [f"Pass ID: {selected_pass_id}"]
+        for feature_column in feature_columns:
+            feature_value = feature_values[feature_column]
+            hover_text.append(f"{format_metric(feature_column)}: {feature_value:.2f}")
+
+        # Add contributions to the plot
+        self.add_data_point(
+            ser_plot=contributions,
+            plots="",
+            name=f"Pass #{selected_pass_id}",
+            hover="",
+            hover_string="<br>".join(hover_text)
+        )
+
+        # Annotate features
+        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+            feature_value = feature_values[feature_column]
+            self.fig.add_annotation(
+                x=contributions[metric],
+                #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
+
+                y=i * 1.0 + 0.5,
+                xanchor="center",
+                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+                showarrow=False,
+                font={
+                "color": rgb_to_color(self.dark_green),
+                "family": "Gilroy-Light",
+                "size": 11 * self.font_size_multiplier,
+                },
+            align="center",
+            )
+
+
+
+    def add_passes(self, pass_df_xgboost, metrics, selected_pass_id):
+        hover_texts = []
+
+        for _, row in self.feature_contrib_df.iterrows():
+            hover_text = []
+            pass_id = row["id"]
+            pass_number = selected_pass_id
+            #hover_text.append(f"Pass #{pass_number}")
+            pass_features = pass_df_xgboost[pass_df_xgboost["id"] == pass_id]
+            if not pass_features.empty:
+                pass_features = pass_features.iloc[0]
+
+                for metric in metrics:
+                    feature_column = metric.replace("_contribution", "")
+                    if feature_column in pass_features:
+                        value = pass_features[feature_column]
+                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+            else:
+                hover_text.append("No matching pass data")
+
+            hover_texts.append("<br>".join(hover_text))
+
+        self.add_group_data(
+            df_plot=self.feature_contrib_df,
+            plots="",
+            names=hover_texts,
+            hover="",
+            hover_string="",
+            legend="All Passes",
+        )
+
+      
+      
+
+class PassContributionPlot_XGBoost(DistributionPlot):
+    def __init__(self, feature_contrib_df, pass_df_xgboost, metrics, **kwargs):
+        self.feature_contrib_df = feature_contrib_df
+        self.pass_df_xgboost = pass_df_xgboost
+        self.metrics = metrics
+
+        # Validate inputs
+        for metric in metrics:
+            if metric not in feature_contrib_df.columns:
+                raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
+
+        super().__init__(columns=metrics, annotate=False, **kwargs)  
+
+    def add_pass(self, feature_contrib_df, pass_df_xgboost, pass_id, metrics, selected_pass_id):
+        # Filter contributions and features for the selected pass
+        filtered_contrib = feature_contrib_df[feature_contrib_df["id"] == pass_id]
+        filtered_pass = pass_df_xgboost[pass_df_xgboost["id"] == pass_id]
+
+        if filtered_contrib.empty or filtered_pass.empty:
+            raise ValueError(f"Pass ID {pass_id} not found.")
+        if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+            raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+        contributions = filtered_contrib.iloc[0][metrics]
+        feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+        feature_values = filtered_pass.iloc[0][feature_columns]
+
+        # Construct hover text
+        hover_text = [f"Pass ID: {selected_pass_id}"]
+        for feature_column in feature_columns:
+            feature_value = feature_values[feature_column]
+            hover_text.append(f"{format_metric(feature_column)}: {feature_value:.2f}")
+
+        # Add contributions to the plot
+        self.add_data_point(
+            ser_plot=contributions,
+            plots="",
+            name=f"Pass #{selected_pass_id}",
+            hover="",
+            hover_string="<br>".join(hover_text)
+        )
+
+        # Annotate features
+        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+            feature_value = feature_values[feature_column]
+            self.fig.add_annotation(
+                x=contributions[metric],
+                #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
+
+                y=i * 1.0 + 0.5,
+                xanchor="center",
+                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+                showarrow=False,
+                font={
+                "color": rgb_to_color(self.dark_green),
+                "family": "Gilroy-Light",
+                "size": 11 * self.font_size_multiplier,
+                },
+            align="center",
+            )
+
+
+
+    def add_passes(self, pass_df_xgboost, metrics, selected_pass_id):
+        hover_texts = []
+
+        for _, row in self.feature_contrib_df.iterrows():
+            hover_text = []
+            pass_id = row["id"]
+            pass_number = selected_pass_id
+            #hover_text.append(f"Pass #{pass_number}")
+            pass_features = pass_df_xgboost[pass_df_xgboost["id"] == pass_id]
+            if not pass_features.empty:
+                pass_features = pass_features.iloc[0]
+
+                for metric in metrics:
+                    feature_column = metric.replace("_contribution", "")
+                    if feature_column in pass_features:
+                        value = pass_features[feature_column]
+                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+            else:
+                hover_text.append("No matching pass data")
+
+            hover_texts.append("<br>".join(hover_text))
+
+        self.add_group_data(
+            df_plot=self.feature_contrib_df,
+            plots="",
+            names=hover_texts,
+            hover="",
+            hover_string="",
+            legend="All Passes",
+        )
+
+      
+      
 
 class PitchVisual(Visual):
     def __init__(self, metric, pdf = False, *args, **kwargs):
@@ -1105,3 +1440,372 @@ class ShotVisual(VerticalPitchVisual):
             },
             legend=dict(y=-0.05),
 )
+
+class HorizontalPitchVisual(PitchVisual):
+    def _add_pitch(self):
+        self.fig.update_layout(
+            hoverdistance=100,
+            xaxis=dict(
+                showgrid=False,
+                showline=False,
+                showticklabels=False,
+                zeroline=False,
+                range=[-0.2, 100],  # Full width
+                constrain="domain",
+                fixedrange=True,
+            ),
+            yaxis=dict(
+                showgrid=False,
+                showline=False,
+                showticklabels=False,
+                zeroline=False,
+                range=[-0.2, 100],  # Full height
+                scaleanchor="x",
+                scaleratio=0.65,  # approx 68/105
+                constrain="domain",
+                fixedrange=True,
+            ),
+        )
+
+        shapes = self._get_shapes()
+        for shape in shapes:
+            if shape["type"] != "path":
+                shape.update(dict(line={"color": "green", "width": 2}, xref="x", yref="y"))
+                # In horizontal, use original x0, x1, y0, y1 — no need to swap
+                self.fig.add_shape(**shape)
+
+        # Add arcs for horizontal layout (adjust positions)
+        arcs = [
+            dict(
+                type="path", path=self.ellipse_arc(11, 50, 6.2 * 1.35, 9.5 * 1.35, 1.2 * np.pi, 1.8 * np.pi),
+            ),
+            dict(
+                type="path", path=self.ellipse_arc(0, 0, 6.2 * 0.3, 9.5 * 0.3, 0, 0.5 * np.pi),
+            ),
+            dict(
+                type="path", path=self.ellipse_arc(0, 100, 6.2 * 0.3, 9.5 * 0.3, 3/2 * np.pi, 2 * np.pi),
+            )
+        ]
+
+        
+    def iter_zones(self):
+        for key, value in const.SHOT_ZONES_BBOX.items():
+            # In horizontal layout, x is x and y is y
+            x = [
+                value["x_lower_bound"],
+                value["x_upper_bound"],
+                value["x_upper_bound"],
+                value["x_lower_bound"],
+                value["x_lower_bound"],
+            ]
+            y = [
+                value["y_lower_bound"],
+                value["y_lower_bound"],
+                value["y_upper_bound"],
+                value["y_upper_bound"],
+                value["y_lower_bound"],
+            ]
+            yield key, x, y
+
+class PassVisual_logistic(HorizontalPitchVisual):
+    def __init__(self, *args, **kwargs):
+        self.line_color = 'green'
+        self.line_width = 3
+        self.shot_color = rgb_to_color(self.bright_blue)
+        self.failed_color = rgb_to_color(self.bright_yellow)
+        self.bbox_color = rgb_to_color(self.bright_green)
+        self.marker_size = 15
+        self.basic_text_size = 10
+        self.text_size = 20
+        super().__init__(*args, **kwargs)
+
+    # def add_shots(self, shots):
+
+    #     shots_df = shots.df_shots.copy()
+    #     shot_contribution= shots.df_contributions.copy()    
+
+    #     shots_df['category'] = shots_df['goal']
+    #     labels = {False: 'Shot', True: 'Goal'}
+    #     shots_df['category'] = shots_df['category'].replace(labels)
+    #     arrays_to_stack = [shots_df.xG]
+
+    #     # Stack the arrays
+    #     customdata = np.stack(arrays_to_stack, axis=-1)
+
+  
+    #     shots_df['ms'] = shots_df['xG'] * 20 + 10
+
+    #     masks = [shots_df['goal'] == False, shots_df['goal']== True]
+    #     markers = [
+    #         {"symbol": "circle-open", "color": rgb_to_color(self.dark_green, opacity=1),
+    #          "line": {"color": rgb_to_color(self.dark_green, opacity=1), "width": 2}},
+    #         {"symbol": "circle", "color": rgb_to_color(self.bright_green),
+    #          "line": {"color": rgb_to_color(self.dark_green), "width": 2}}]
+
+    #     names = ["Shot", "Goal"]
+    #     filtered_data = [shots_df[mask] for mask in masks]
+    #     temp_customdata = [customdata[mask] for mask in masks]
+
+    #     for data, marker, name, custom in zip(filtered_data, markers, names, temp_customdata):
+    #         if custom.size == 0:  # Skip if customdata is empty
+    #             continue
+    #         # hovertemplate = ('<b>%{customdata[3]}</b><br>%{customdata[0]}<br>Minute: %{customdata[1]}<br>'
+    #         #                  '<b>xG:</b> %{customdata[2]:.3f}<br>')
+
+    #         # feature_names = ['Angle', 'Header', 'Match State', 'Strong Foot', 'Smart Pass', 'Cross',
+    #         #                  'Counterattack', 'Clear Header', 'Rebound', 'Key Pass', 'Self Created Shot']
+    #         # for i, feature_name in enumerate(feature_names, start=4):
+    #         #     hovertemplate += f'<b>{feature_name}:</b> %{{customdata[{i}]:.3f}}<br>' if custom[0][i] > 0.005 else ''
+
+    #         #hovertemplate += '<extra></extra>'
+    #         self.fig.add_trace(
+    #             go.Scatter(
+    #                 x=(68 - data['start_y'])*100/68, y=data['start_x']*100/105,
+    #                 mode="markers",
+    #                 #marker=marker,
+    #                 marker=dict(size=10),
+    #                 #marker_size=data['ms'],
+    #                 showlegend=False,
+    #                 name=name,
+    #                 customdata=custom,
+    #                 #hovertemplate=hovertemplate,
+    #             )
+    #         )
+    #         self.fig.add_trace(
+    #             go.Scatter(
+    #                 x=[-100],
+    #                 y=[0],
+    #                 mode="markers",
+    #                 marker=marker,
+    #                 name=name,
+    #                 showlegend=True,
+    #                 marker_size=10
+    #             )
+    #         )
+
+    #     self.fig.update_layout(
+    #         legend=dict(
+    #             y=-0.05,
+    #         )
+    #     )
+
+    def add_pass(self,pass_data, pass_id, home_team_color = "green" , away_team_color = "red"):
+        # Filter for the specific shot using the shot_id
+        # df_frames = pass_data.df_tracking[pass_data.df_tracking['id'] == pass_id]
+        # selected_event = pass_data.df_pass[pass_data.df_pass['id'] == pass_id]
+        
+        # if not df_frames.empty:
+        #     for tn in ['home_team', 'away_team']:
+        #         df_home = df_frames[df_frames['team'] == tn]
+
+        #         if not df_home.empty:
+        #             team_direction = df_home.iloc[0]['team_direction']
+            
+        #     # Adjust coordinates for 'left' attacking teams
+        #     if team_direction == 'left':
+        #         df_home['x_adjusted'] = 105 - df_home['x_adjusted']
+        #         df_home['y_adjusted'] = 68 - df_home['y_adjusted']
+
+        #     is_possession_team = df_home.iloc[0]['team_id'] == selected_event['team_id']
+        #     is_possession_team = is_possession_team.item() if isinstance(is_possession_team, pd.Series) else is_possession_team
+
+        #     passer_id = selected_event['player_id'].iloc[0] if isinstance(selected_event['player_id'], pd.Series) else selected_event['player_id']
+        #     receiver_id = selected_event['pass_recipient_id'].iloc[0] if isinstance(selected_event['pass_recipient_id'], pd.Series) else selected_event['pass_recipient_id']
+
+        #     receiver = df_home[df_home['player_id'] == receiver_id]
+
+        #     end_x = float(selected_event['end_x'].iloc[0] if isinstance(selected_event['end_x'], pd.Series) else selected_event['end_x'])
+        #     end_y = float(selected_event['end_y'].iloc[0] if isinstance(selected_event['end_y'], pd.Series) else selected_event['end_y'])
+
+        #     passer = df_home[df_home['player_id'] == passer_id]
+        #     if not passer.empty:
+        #         passer_x = float(passer.iloc[0]['x_adjusted'])
+        #         passer_y = float(passer.iloc[0]['y_adjusted'])
+        #         passer_x_norm = passer_x * 100 / 105
+        #         passer_y_norm = (68 - passer_y) * 100 / 68
+
+        #     # Flip pass end coords for left-attacking teams
+        #     if team_direction == 'left':
+        #         end_x = 105 - end_x
+        #         end_y = 68 - end_y
+
+           
+        #     end_x_norm = end_x * 100 / 105
+        #     end_y_norm = (68 - end_y) * 100 / 68
+
+        #     if is_possession_team:
+        #         # Pass start (passer)
+        #         self.fig.add_trace(
+        #             go.Scatter(
+        #                 x=[passer_y_norm],
+        #                 y=[passer_x_norm],
+        #                 mode="markers",
+        #                 marker=dict(size=12, color="black", line=dict(width=2, color=home_team_color if tn == 'home_team' else away_team_color)),
+        #                 name="Passer",
+        #                 showlegend=True
+        #             )
+        #         )
+
+        #         # Receiver marker
+        #         if not receiver.empty:
+        #             receiver_x = float(receiver.iloc[0]['x_adjusted'])
+        #             receiver_y = float(receiver.iloc[0]['y_adjusted'])
+
+        #             receiver_x_norm = receiver_x * 100 / 105
+        #             receiver_y_norm = (68 - receiver_y) * 100 / 68
+
+        #             # Dotted line: end of pass to receiver location
+        #             self.fig.add_trace(
+        #                 go.Scatter(
+        #                     x=[end_y_norm, receiver_y_norm],
+        #                     y=[end_x_norm, receiver_x_norm],
+        #                     mode="lines",
+        #                     line=dict(dash="dot", color="black", width=1.5),
+        #                     showlegend=False
+        #                 )
+        #             )
+
+        #         # Draw pass arrow
+        #         if end_x != -1:
+        #             self.fig.add_annotation(
+        #                 x=end_y_norm,
+        #                 y=end_x_norm,
+        #                 ax=passer_y_norm,
+        #                 ay=passer_x_norm,
+        #                 xref="x", yref="y", axref="x", ayref="y",
+        #                 arrowhead=2,
+        #                 arrowsize=1.5,
+        #                 arrowwidth=2,
+        #                 arrowcolor="black",
+        #                 showarrow=True
+        #             )
+
+        #     # Plot all players
+        #     player_x = df_home['x_adjusted'] * 100 / 105
+        #     player_y = (68 - df_home['y_adjusted']) * 100 / 68
+
+        #     self.fig.add_trace(
+        #         go.Scatter(
+        #             x=player_y,
+        #             y=player_x,
+        #             mode="markers",
+        #             marker=dict(size=10, color=home_team_color if tn == 'home_team' else away_team_color,
+        #                         line=dict(width=1, color='black')),
+        #             name=f"{'Home' if tn == 'home_team' else 'Away'} Players",
+        #             showlegend=True
+        #         )
+        #     )
+
+        df_frames = pass_data.df_tracking[pass_data.df_tracking['id'] == pass_id]
+        selected_event = pass_data.df_pass[pass_data.df_pass['id'] == pass_id]
+
+        if not df_frames.empty:
+            for tn in ['home_team', 'away_team']:
+                df_team = df_frames[df_frames['team'] == tn]
+
+                if df_team.empty:
+                    continue  # Skip if no data for this team
+
+                team_direction = df_team.iloc[0]['team_direction']
+
+                 # Adjust for left direction
+                if team_direction == 'left':
+                    df_team['x_adjusted'] = 105 - df_team['x_adjusted']
+                    df_team['y_adjusted'] = 68 - df_team['y_adjusted']
+                else:
+                    df_team['x_adjusted'] = df_team['x_adjusted']
+                    df_team['y_adjusted'] = df_team['y_adjusted']
+
+                # Determine if this team has possession
+                is_possession_team = df_team.iloc[0]['team_id'] == selected_event['team_id']
+                is_possession_team = is_possession_team.item() if isinstance(is_possession_team, pd.Series) else is_possession_team
+
+                 # Get passer and receiver
+                passer_id = selected_event['player_id'].iloc[0] if isinstance(selected_event['player_id'], pd.Series) else selected_event['player_id']
+                receiver_id = selected_event['pass_recipient_id'].iloc[0] if isinstance(selected_event['pass_recipient_id'], pd.Series) else selected_event['pass_recipient_id']
+
+                passer = df_team[df_team['player_id'] == passer_id]
+                receiver = df_team[df_team['player_id'] == receiver_id]
+
+                # Get pass end coordinates
+                end_x = float(selected_event['end_x'].iloc[0] if isinstance(selected_event['end_x'], pd.Series) else selected_event['end_x'])
+                end_y = float(selected_event['end_y'].iloc[0] if isinstance(selected_event['end_y'], pd.Series) else selected_event['end_y'])
+
+                if team_direction == 'left':
+                    end_x = 105 - end_x
+                    end_y = 68 - end_y
+
+                end_x_norm = end_x * 100 / 105
+                end_y_norm = (68 - end_y) * 100 / 68
+
+                # Plot all players (for this team)
+                player_x = df_team['x_adjusted'] * 100 / 105
+                #player_y = (68 - df_team['y_adjusted']) * 100 / 68
+                player_y = df_team['y_adjusted'] * 100 / 68
+
+                self.fig.add_trace(
+                    go.Scatter(
+                    x=player_x,
+                    y=player_y,
+                    mode="markers",
+                    marker=dict(size=10, color=home_team_color if tn == 'home_team' else away_team_color,
+                            line=dict(width=1, color='black')),
+                    name=f"{'Home' if tn == 'home_team' else 'Away'} Players",
+                    showlegend=True
+                )
+            )
+
+                # Plot pass only if this is the possession team
+            if is_possession_team and not passer.empty:
+                passer_x = float(passer.iloc[0]['x_adjusted'])
+                passer_y = float(passer.iloc[0]['y_adjusted'])
+                passer_x_norm = passer_x * 100 / 105
+                passer_y_norm = passer_y * 100 / 68
+
+                # Passer marker
+                self.fig.add_trace(
+                    go.Scatter(
+                        x=[passer_x_norm],
+                        y=[passer_y_norm],
+                        mode="markers",
+                        marker=dict(size=12, color="black",
+                            line=dict(width=2, color=home_team_color if tn == 'home_team' else away_team_color)),
+                        name="Passer",
+                        showlegend=True
+                    )
+                )
+                
+
+
+                # Receiver marker and line from pass end to receiver
+                if not receiver.empty:
+                    receiver_x = float(receiver.iloc[0]['x_adjusted'])
+                    receiver_y = float(receiver.iloc[0]['y_adjusted'])
+
+                    receiver_x_norm = receiver_x * 100 / 105
+                    receiver_y_norm = receiver_y * 100 / 68
+
+                    self.fig.add_trace(
+                        go.Scatter(
+                            x=[end_x_norm, receiver_x_norm],
+                            y=[end_y_norm, receiver_y_norm],
+                            mode="lines",
+                                line=dict(dash="dot", color="black", width=1.5),
+                            showlegend=False
+                        )
+                    )
+                # Pass arrow
+                if end_x != -1:
+                    self.fig.add_annotation(
+                        x=end_x_norm,
+                        y=end_y_norm,
+                        ax=passer_x_norm,
+                        ay=passer_y_norm,
+                        xref="x", yref="y", axref="x", ayref="y",
+                        arrowhead=2,
+                        arrowsize=1.5,
+                        arrowwidth=2,
+                        arrowcolor="black",
+                        showarrow=True
+                    )
+                
