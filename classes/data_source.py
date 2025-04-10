@@ -1000,8 +1000,6 @@ class passes(Data):
         }
 
         
-
-
         df_pass = self.df_pass.copy()
         df_pass = df_pass.rename(columns=column_rename_map)
 
