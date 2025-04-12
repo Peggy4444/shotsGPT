@@ -153,3 +153,18 @@ def create_chat(to_hash, chat_class, *args, **kwargs):
     chat_hash_state = hash(to_hash)
     chat = chat_class(chat_hash_state, *args, **kwargs)
     return chat
+
+
+import torch.nn as nn
+
+class SimplerNet(nn.Module):
+    def __init__(self, input_dim):
+        super(SimplerNet, self).__init__()
+        self.model = nn.Sequential(
+            nn.Linear(input_dim, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1)
+        )
+
+    def forward(self, x):
+        return self.model(x)

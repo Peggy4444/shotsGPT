@@ -32,12 +32,12 @@ import numpy as np
 import argparse
 import tiktoken
 import os
-from utils.utils import normalize_text
+from utils.utils import normalize_text,SimplerNet
 
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
 from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn
 
 # Function to load and inject custom CSS from an external file
 def load_css(file_name):
@@ -105,12 +105,12 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost",
 # Sample content
 with tab1:
     st.header("Logistic Regression")
-
-    model = Passes.load_model(selected_competition, show_summary=True)
     
-    st.write(pass_df.astype(str))
+    model = Passes.load_model_logistic(selected_competition, show_summary=True)
+    pass_df_logistic = pass_df.drop(['h1','h2','h3','h4'],axis=1)
+    st.write(pass_df_logistic.astype(str))
     
-    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution logistic model</h3>", unsafe_allow_html=True)
     
     df_contributions = pass_data.df_contributions
     st.write(df_contributions.astype(str))
@@ -140,15 +140,49 @@ with tab1:
   
 with tab2:
     st.header("xNN")
-    pass_df_xnn = pass_df.drop(['speed_difference'],axis=1)
-    st.write(pass_df_xnn.astype(str))
-    model = Passes.load_model(selected_competition, show_summary=False)
 
+    st.markdown("<h3 style='font-size:18px; color:black;'>Logistic models based on features classification</h3>", unsafe_allow_html=True)
+    model = Passes.load_pressure_model(selected_competition, show_summary=True)
+    model = Passes.load_speed_model(selected_competition,show_summary=True)
+    model = Passes.load_position_model(selected_competition, show_summary=True)
+    model = Passes.load_event_model(selected_competition,show_summary=True)
+
+    df_passes_xnn = pass_df.drop(['speed_difference'],axis=1)
+    st.write(df_passes_xnn.astype(str))
+
+    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from xNN model</h3>", unsafe_allow_html=True)
+    df_xnn_contrib = pass_data.get_feature_contributions_xNN(selected_competition)
+    st.write(df_xnn_contrib.astype(str))
+
+    excluded_columns = ['xT_predicted','id', 'match_id']
+    metrics = [col for col in df_xnn_contrib.columns if col not in excluded_columns]
+
+   # Build and show plot
+    st.markdown("<h3 style='font-size:18px; color:black;'>Xnn contribution plot</h3>", unsafe_allow_html=True)
+    visuals_Xnn = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
+    visuals_Xnn.add_passes(df_passes_xnn,metrics,selected_pass_id=selected_pass_id)
+    visuals_Xnn.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
+    visuals_Xnn.show()
+
+    xt_value = df_contributions[df_contributions['id'] == pass_id]['xT']
+    xt_value = xt_value.iloc[0] if not xt_value.empty else "N/A"
+    
+    st.markdown(
+    f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
+    unsafe_allow_html=True
+    )
+
+    visuals = PassVisual(metric=None)
+    visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
+    visuals.show()
+
+
+ 
 with tab3:
     st.header("XGBoost")
 
     model = Passes.load_xgboost_model(selected_competition)
-    pass_df_xgboost = pass_df.drop(['speed_difference', 'possession_xG_target'],axis=1)
+    pass_df_xgboost = pass_df.drop(['speed_difference', 'possession_xG_target','h1','h2','h3','h4'],axis=1)
     st.write(pass_df_xgboost.astype(str))
     st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
     feature_contrib_df = Passes.get_feature_contributions(pass_df_xgboost, model)
@@ -166,8 +200,7 @@ with tab3:
     pass_id=selected_pass_id,metrics=metrics,selected_pass_id=selected_pass_id)
 
     visuals_xgboost.show()
-    model = Passes.load_model(selected_competition, show_summary=False) 
-
+    
     xt_value_xgboost = feature_contrib_df[feature_contrib_df['id'] == pass_id]['xT_predicted']
     xt_value_xgboost = xt_value_xgboost.iloc[0] if not xt_value_xgboost.empty else "N/A"
 
@@ -186,14 +219,12 @@ with tab4:
     st.header("CNN")
     pass_df_cnn = pass_df.drop(['speed_difference'],axis=1)
     st.write(pass_df_cnn.astype(str))
-    model = Passes.load_model(selected_competition, show_summary=False)
 
 
 with tab5:
     st.header("Regression trees")
     pass_df_trees = pass_df.drop(['speed_difference'],axis=1)
     st.write(pass_df_trees.astype(str))
-    model = Passes.load_model(selected_competition, show_summary=False)
 
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")

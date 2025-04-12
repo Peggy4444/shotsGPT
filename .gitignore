@@ -18,4 +18,5 @@ clustering.ipynb
 secrets.toml:zone.identifier
 secrets.toml:Zone.Identifier
 *:Zone.Identifier
-
+data/tracking_2022_2023.parquet
+data/features_2022_2023_final.csv
