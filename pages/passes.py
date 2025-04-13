@@ -164,7 +164,7 @@ with tab2:
     visuals_Xnn.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
     visuals_Xnn.show()
 
-    xt_value = df_contributions[df_contributions['id'] == pass_id]['xT']
+    xt_value = df_xnn_contrib[df_xnn_contrib['id'] == pass_id]['xT_predicted']
     xt_value = xt_value.iloc[0] if not xt_value.empty else "N/A"
     
     st.markdown(

@@ -1314,14 +1314,19 @@ class Passes(Data):
                 logistic_coeffs[h_key] = dict(zip(df[feature_col], df[coef_col]))
 
         # Aggregate base feature contributions
-        all_base_feats = sorted(set().union(*[v.keys() for v in logistic_coeffs.values()]))
-        base_contrib_matrix = pd.DataFrame(0.0, index=df_pass.index, columns=all_base_feats)
+        all_base_feats = set()
+        for coeff_dict in logistic_coeffs.values():
+            all_base_feats.update(coeff_dict.keys())
+        all_base_feats = sorted(list(all_base_feats))
+        base_contrib_matrix = pd.DataFrame(0, index=df_pass.index, columns=all_base_feats)
 
         for i, h in enumerate(h_names):
             if h not in logistic_coeffs:
                 continue
             h_shap_col = shap_array[:, i]
-            for feat, coef in logistic_coeffs[h].items():
+            coeffs = logistic_coeffs[h] 
+            
+            for feat, coef in coeffs.items():
                 base_contrib_matrix[feat] += coef * h_shap_col
 
         # Add IDs and xT prediction to result
