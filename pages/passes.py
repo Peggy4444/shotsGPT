@@ -177,7 +177,7 @@ with tab5:
     pass_df_trees = pass_df.drop(['speed_difference'],axis=1)
     st.write(pass_df_trees.astype(str))
     #model_mimic = Passes.load_mimic_models(selected_competition)
-    model_mimic = pass_data.load_mimic_models(selected_competition)
+    model_mimic = Passes.load_mimic_models(selected_competition)
 
 
         
