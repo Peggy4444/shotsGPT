@@ -1186,6 +1186,7 @@ class Passes(Data):
         except Exception as e:
             st.error(f"Error loading scaler: {e}")
             return None
+        
 
 
     def get_feature_contributions_xNN(self, competition):
@@ -1289,7 +1290,7 @@ class Passes(Data):
 
         # 1. Define features to be used for prediction (exclude non-feature columns)
         feature_cols = [col for col in pass_df_xgboost.columns if col not in ['id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
-       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season', 'possession_xG_target','pass_recipient_id','passer_name','receiver_name','team_name','actual_xG','possession_goal','h1','h2','h3','h4']]
+       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season', 'possession_xG_target','pass_recipient_id','passer_name','receiver_name','team_name','possession_xg','possession_goal','h1','h2','h3','h4']]
         
         # 2. Extract X (feature matrix)
         X = pass_df_xgboost[feature_cols]

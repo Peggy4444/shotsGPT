@@ -70,6 +70,22 @@ def describe_xg(xG):
     
     return description
 
+def describe_xg_pass(xG):
+    if xG == 0 : 
+        description = "This pass does not lead to a shot and there is less chance of scoring. It is a safe pass."
+    elif xG > 0 and xG < 0.066 : 
+        description = f"This pass is leading to a shot with xG value {xG:.3f}. We estimate chance of scoring from this opportunity {xG * 100:.0f}% and it is a safe pass."
+    elif xG > 0.066 :
+        description = f"This pass is leading to a shot with xG value {xG:.3f}. We estimate chance of scoring from this opportunity {xG * 100:.0f}% and it is a dangerous pass."
+    return description
+
+
+def describe_position_pass(x,y):
+    if x <= 33 and y <= 33:
+        description = "defensive left wing"
+    else:
+        description = "central wing"
+    return description
 
 # In sentences.py or wherever you manage your sentences module
 
@@ -240,7 +256,7 @@ def describe_shot_single_feature(feature_name, feature_value):
         return "the shot was taken after a corner." if feature_value == 1 else "the shot was not taken after a corner."
     if feature_name == 'shot_after_free_kick':
         return "the shot was taken after a free-kick." if feature_value == 1 else "the shot was not taken after a free-kick."
-
+ 
     # Describe continuous features
     if feature_name == 'vertical_distance_to_center':
         if feature_value < 2.805:

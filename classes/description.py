@@ -423,6 +423,90 @@ class ShotDescription(Description):
         return [{"role": "user", "content": prompt}]
 
 
+class PassDescription_logistic(Description):
+
+        output_token_limit = 500
+
+        @property
+        def gpt_examples_path(self):
+        #     return f"{self.gpt_examples_base}/action/passes.xlsx"
+            return []
+
+        @property
+        def describe_paths(self):
+        #     return [f"{self.describe_base}/action/passes.xlsx"]
+            return []
+        
+        def __init__(self,pass_data,df_contributions, pass_id, competition):
+            self.pass_data = pass_data
+            self.df_contributions = df_contributions
+            self.pass_id = pass_id
+            self.competition = competition
+            super().__init__()
+
+        def synthesize_text(self):
+
+            pass_data = self.pass_data
+            df_contributions = self.df_contributions
+            
+            passes = pass_data.df_pass[pass_data.df_pass['id'] == self.pass_id]  # Fix here to use self.shot_id
+            contributions = pass_data.df_contributions[pass_data.df_contributions['id'] == self.pass_id]
+
+            if passes.empty:
+                raise ValueError(f"No shot found with ID {self.shot_id}")
+            
+            player_name = passes['passer_name'].iloc[0]
+            team_name = passes['team_name'].iloc[0]
+            xT = contributions['xT'].iloc[0]
+            
+            #extracting the pass classification values
+            forward_pass = passes['forward pass'].iloc[0]
+            back_pass = passes['backward pass'].iloc[0]
+            lateral_pass = passes['lateral pass'].iloc[0]
+
+            if forward_pass:
+                pass_type = "a forward pass"
+            elif back_pass:
+                pass_type = "a back pass"
+            elif lateral_pass:
+                pass_type = "a lateral pass"
+            else:
+                pass_type = "an unspecified pass"
+            
+            xG = passes['possession_xg'].iloc[0]
+            
+
+
+
+            pass_description = (
+                f"The pass is a {pass_type} and the passer is {player_name} from {team_name} team." 
+                
+                f"This pass has an xT value of {xT:.3f}."
+                f"{sentences.describe_xg_pass(xG)}"
+                f"The number of teammates "
+            )
+            #pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
+
+            #shot_description += '\n' + sentences.describe_shot_contributions(pass_contributions, pass_features)
+
+            with st.expander("Synthesized Text"):
+                st.write(pass_description)
+            
+            return pass_description 
+        
+
+        def get_prompt_messages(self):
+            prompt = (
+                "You are a football commentator. You should write in an exciting and engaging way about a shot"
+                f"You should giva a four sentence summary of the shot taken by the player. "
+                "The first sentence should say whether it was a good chance or not, state the expected goals value and also state if it was a goal. "
+                "The second and third sentences should describe the most important factors that contributed to the quality of the chance. "
+                "If it was a good chance these two sentences chould explain what contributing factors made the shot dangerous. "
+                "If it wasn't particularly good chance then these two sentences chould explain why it wasn't a good chance. "
+                "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
+                )
+            return [{"role": "user", "content": prompt}]   
+
 
 class CountryDescription(Description):
     output_token_limit = 150

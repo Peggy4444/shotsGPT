@@ -720,18 +720,7 @@ class PassContributionPlot_Xnn(DistributionPlot):
         filtered_contrib = df_xnn_contrib[df_xnn_contrib["id"] == pass_id]
         filtered_pass = df_passes_xnn[df_passes_xnn["id"] == pass_id]
 
-        print("---- DEBUG: In add_pass ----")
-        print("Metrics:", metrics)
-        print("filtered_contrib columns:", filtered_contrib.columns.tolist())
-        print("filtered_pass columns:", filtered_pass.columns.tolist())
-
-        missing_in_contrib = [m for m in metrics if m not in filtered_contrib.columns]
-        print("Missing in contrib:", missing_in_contrib)
-
         feature_columns = [m.replace("_contribution", "") for m in metrics]
-        missing_in_pass = [f for f in feature_columns if f not in filtered_pass.columns]
-        print("Missing in pass:", missing_in_pass)
-
         contributions = filtered_contrib.iloc[0][metrics]
         feature_values = filtered_pass.iloc[0][feature_columns]
 
