@@ -1608,7 +1608,7 @@ class PassVisual(HorizontalPitchVisual):
                     end_y = 68 - end_y
 
                 end_x_norm = end_x * 100 / 105
-                end_y_norm = (68 - end_y) * 100 / 68
+                end_y_norm = end_y * 100 / 68
 
                 # Plot all players for this team
                 player_x = df_team['x_adjusted'] * 100 / 105

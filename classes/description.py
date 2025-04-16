@@ -449,8 +449,10 @@ class PassDescription_logistic(Description):
             pass_data = self.pass_data
             df_contributions = self.df_contributions
             
+            
             passes = pass_data.df_pass[pass_data.df_pass['id'] == self.pass_id]  # Fix here to use self.shot_id
             contributions = pass_data.df_contributions[pass_data.df_contributions['id'] == self.pass_id]
+            tracking = pass_data.df_tracking[pass_data.df_tracking['id'] == self.pass_id]
 
             if passes.empty:
                 raise ValueError(f"No shot found with ID {self.shot_id}")
@@ -458,7 +460,11 @@ class PassDescription_logistic(Description):
             player_name = passes['passer_name'].iloc[0]
             team_name = passes['team_name'].iloc[0]
             xT = contributions['xT'].iloc[0]
-            
+            x = passes['passer_x'].iloc[0]
+            y = passes['passer_y'].iloc[0]
+            team_id = tracking['team_id'].iloc[0]
+            possession_team_id = tracking['possession_team_id'].iloc[0]
+
             #extracting the pass classification values
             forward_pass = passes['forward pass'].iloc[0]
             back_pass = passes['backward pass'].iloc[0]
@@ -479,8 +485,7 @@ class PassDescription_logistic(Description):
 
 
             pass_description = (
-                f"The pass is a {pass_type} and the passer is {player_name} from {team_name} team." 
-                
+                f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_id,possession_team_id)} \n and the passer is {player_name} from {team_name} team." 
                 f"This pass has an xT value of {xT:.3f}."
                 f"{sentences.describe_xg_pass(xG)}"
                 f"The number of teammates "

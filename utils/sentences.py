@@ -80,11 +80,31 @@ def describe_xg_pass(xG):
     return description
 
 
-def describe_position_pass(x,y):
+def describe_position_pass(x,y,team_id,possession_team_id):
+    x = x * 100 / 105
+    y = y * 100 / 68
+
+    if possession_team_id == team_id:
+        # Home team attacks left → right (no flip)
+        pass
+    elif possession_team_id != team_id:
+        # Away team attacks right → left → flip x
+        x = 100 - x
+
     if x <= 33 and y <= 33:
-        description = "defensive left wing"
+        description = "the defensive left zone"
+    elif x <= 66 and y <= 33:
+        description = "the defensive central zone"
+    elif x <= 100 and y <= 33:
+        description = "the defensive right zone"
+    elif x <= 33 and y <= 66:
+        description = "the middle left zone"
+    elif x <= 66 and y <= 66:
+        description = "the middle central zone"
+    elif x <= 100 and y <= 66:
+        description = "the middle right zone"
     else:
-        description = "central wing"
+        description = "the attacking zone"
     return description
 
 # In sentences.py or wherever you manage your sentences module
@@ -102,7 +122,7 @@ def read_feature_thresholds(competition):
         thresh_file = pd.read_excel(file_path)
         return thresh_file
 
-        
+
 
 def describe_shot_features(features, competition):
     descriptions = []
