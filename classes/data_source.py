@@ -1262,8 +1262,8 @@ class Passes(Data):
 
     def load_xgboost_model(competition):
         competitions_dict = {
-            "Allsevenskan 2022": "data/XGBoost_model.sav",
-            "Allsevenskan 2023": "data/XGBoost_model.sav"
+            "Allsevenskan 2022": "data\XGBoost_Model_joblib.sav",
+            "Allsevenskan 2023": "data\XGBoost_Model_joblib.sav"
         }
 
         saved_model_path = competitions_dict.get(competition)
