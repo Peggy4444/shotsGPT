@@ -70,42 +70,55 @@ def describe_xg(xG):
     
     return description
 
-def describe_xg_pass(xG):
-    if xG == 0 : 
-        description = "This pass does not lead to a shot and there is less chance of scoring. It is a safe pass."
-    elif xG > 0 and xG < 0.066 : 
-        description = f"This pass is leading to a shot with xG value {xG:.3f}. We estimate chance of scoring from this opportunity {xG * 100:.0f}% and it is a safe pass."
-    elif xG > 0.066 :
-        description = f"This pass is leading to a shot with xG value {xG:.3f}. We estimate chance of scoring from this opportunity {xG * 100:.0f}% and it is a dangerous pass."
+
+def describe_xT_pass(xT,xG):
+    if xG != 0:
+        if xT < 0.024800:
+            if xG < 0.066100:
+                description = f"This pass has low xT and probability of pass being a shot is {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
+            else:
+                description = f"This pass has low xT probability of pass being a shot is {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
+        elif xT > 0.024800 and xT <= 0.066100:
+            if xG < 0.066100:
+                description = f"This pass has moderate xT value and probability of pass being a shot is {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
+            else:
+                description = f"This pass has moderate xT value and probability of pass being a shot is {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
+        elif xT > 0.066100 and xT <  0.150000:
+            if xG < 0.066100:
+                description = f"This pass has high xT and probability of pass being a shot is {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
+            else:
+                description = f"This pass has high xT and probability of pass being a shot is {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
+        else:
+            if xG < 0.066100:
+                description = f"This pass has excellent xT and probability of pass being a shot is {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
+            else:
+                description = f"This pass has excellent xT and probability of pass being a shot is {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
+            
+    else:
+        description = f"The pass did not lead to a shot and opportunities to score goal is less. This is a safe pass."
     return description
 
 
-def describe_position_pass(x,y,team_id,possession_team_id):
+def describe_position_pass(x, y, team_direction):
+    # Mirror coordinates if team is attacking left
+    if team_direction == 'left':
+        x = 105 - x
+        y = 68 - y
+
+    # Normalize like the visual
     x = x * 100 / 105
     y = y * 100 / 68
 
-    if possession_team_id == team_id:
-        # Home team attacks left → right (no flip)
-        pass
-    elif possession_team_id != team_id:
-        # Away team attacks right → left → flip x
-        x = 100 - x
-
-    if x <= 33 and y <= 33:
-        description = "the defensive left zone"
-    elif x <= 66 and y <= 33:
-        description = "the defensive central zone"
-    elif x <= 100 and y <= 33:
-        description = "the defensive right zone"
-    elif x <= 33 and y <= 66:
-        description = "the middle left zone"
-    elif x <= 66 and y <= 66:
-        description = "the middle central zone"
-    elif x <= 100 and y <= 66:
-        description = "the middle right zone"
+    # Zone is determined from normalized x
+    if x <= 33:
+        description = "the defensive zone" if team_direction == 'right' else "the attacking zone"
+    elif 33 < x < 66:
+        description = "the middle zone"
     else:
-        description = "the attacking zone"
+        description = "the attacking zone" if team_direction == 'right' else "the defensive zone"
+
     return description
+
 
 # In sentences.py or wherever you manage your sentences module
 
