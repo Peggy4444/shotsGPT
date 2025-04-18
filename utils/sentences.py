@@ -73,7 +73,7 @@ def describe_xg(xG):
 
 def describe_xT_pass(xT,xG):
     if xG != 0:
-        if xT < 0.024800:
+        if xT <= 0.024800:
             if xG < 0.066100:
                 description = f" It had low xT and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
             else:
@@ -83,7 +83,7 @@ def describe_xT_pass(xT,xG):
                 description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
             else:
                 description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
-        elif xT > 0.066100 and xT <  0.150000:
+        elif xT > 0.066100 and xT <=  0.150000:
             if xG < 0.066100:
                 description = f" It had high xT and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
             else:
@@ -471,7 +471,7 @@ def describe_pass_features_logistic(features, competition):
 
     # teammates behind and beyond 
     descriptions.append(f" There were {features['teammates_beyond']} teammates positioned ahead of the passer at the moment of the pass.")
-    descriptions.append(f" There were {features['opponents_beyond']} teammates positioned ahead of the passer at the moment of the pass.")
+    descriptions.append(f" There were {features['opponents_beyond']} opponents positioned ahead of the passer at the moment of the pass.")
     
 
     # opponents_between
