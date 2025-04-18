@@ -825,6 +825,13 @@ class Passes(Data):
         self.xT_Model = self.load_model_logistic(competition,show_summary=False)
         self.parameters = self.read_model_params(competition)
         self.df_contributions = self.weight_contributions_logistic()
+        
+        drop_cols = ['speed_difference', 'possession_xG_target', 'h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        self.pass_df_xgboost = self.df_pass.drop(columns=[col for col in drop_cols if col in self.df_pass.columns])
+        
+        xGB_model = self.load_xgboost_model(competition)
+        self.feature_contrib_df = self.get_feature_contributions(self.pass_df_xgboost,xGB_model)
+
 
     def get_data(self, match_id=None):
         self.df_pass = pd.read_csv("data/features_2022_2023_final.csv")
@@ -1260,7 +1267,7 @@ class Passes(Data):
         return base_contrib_matrix
 
 
-    def load_xgboost_model(competition):
+    def load_xgboost_model(self,competition):
         competitions_dict = {
             "Allsevenskan 2022": "data/XGBoost_Model_joblib.sav",
             "Allsevenskan 2023": "data/XGBoost_Model_joblib.sav"
@@ -1285,21 +1292,21 @@ class Passes(Data):
             return None  
 
     
-    def get_feature_contributions(pass_df_xgboost, model):
+    def get_feature_contributions(self,pass_df_xgboost,xGB_model):
     
 
         # 1. Define features to be used for prediction (exclude non-feature columns)
         feature_cols = [col for col in pass_df_xgboost.columns if col not in ['id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
-       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season', 'possession_xG_target','pass_recipient_id','passer_name','receiver_name','team_name','possession_xg','possession_goal','h1','h2','h3','h4']]
+       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season','pass_recipient_id','passer_name','receiver_name','team_name','possession_xg','possession_goal']]
         
         # 2. Extract X (feature matrix)
         X = pass_df_xgboost[feature_cols]
 
         # 3. Predict xT probabilities using the classifier
-        xT_probabilities = model.predict_proba(X)[:,1]
+        xT_probabilities = xGB_model.predict_proba(X)[:,1]
 
         # 4. Compute SHAP values
-        explainer = shap.Explainer(model, X)
+        explainer = shap.Explainer(xGB_model, X)
         shap_values = explainer(X)
 
         # 5. Build SHAP DataFrame

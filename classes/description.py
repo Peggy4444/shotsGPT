@@ -491,10 +491,12 @@ class PassDescription_logistic(Description):
                             'average_speed_of_opponents' : passes['average_speed_of_opponents'].iloc[0] ,
                             'pressure_level_passer' : passes['pressure level passer'].iloc[0],
                             'opponents_nearby' : passes['opponents_nearby'].iloc[0],
-                            'possession_xg' : passes['possession_xg'].iloc[0]
+                            'possession_xg' : passes['possession_xg'].iloc[0],
+                            'teammates_beyond' : passes['teammates_beyond'].iloc[0],
+                            'opponents_beyond' : passes['opponents_beyond'].iloc[0],
                             }
 
-            feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
+            feature_descriptions = sentences.describe_pass_features_logistic(pass_features, self.competition)
             pass_description = (
                 f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
                 f"{sentences.describe_xT_pass(xT,xG)}"
@@ -546,7 +548,7 @@ class PassDescription_xgboost(Description):
 
             pass_data = self.pass_data
             
-            passes = pass_data.df_pass[pass_data.df_pass['id'] == self.pass_id]  # Fix here to use self.shot_id
+            passes = pass_data.pass_df_xgboost[pass_data.pass_df_xgboost['id'] == self.pass_id]  # Fix here to use self.shot_id
             contributions = pass_data.feature_contrib_df[pass_data.feature_contrib_df['id'] == self.pass_id]
             tracking = pass_data.df_tracking[pass_data.df_tracking['id'] == self.pass_id]
 
@@ -555,11 +557,11 @@ class PassDescription_xgboost(Description):
             
             player_name = passes['passer_name'].iloc[0]
             team_name = passes['team_name'].iloc[0]
-            xT = contributions['xT'].iloc[0]
+            xT = contributions['xT_predicted'].iloc[0]
             x = passes['passer_x'].iloc[0]
             y = passes['passer_y'].iloc[0]
-            team_id = tracking['team_id'].iloc[0]
-            possession_team_id = tracking['possession_team_id'].iloc[0]
+            team_direction = tracking['team_direction'].iloc[0]
+            
 
             #extracting the pass classification values
             forward_pass = passes['forward pass'].iloc[0]
@@ -577,16 +579,30 @@ class PassDescription_xgboost(Description):
             
             xG = passes['possession_xg'].iloc[0]
             
+            pass_features = {'pass_length' : passes['pass_length'].iloc[0]  ,
+                            'start_angle_to_goal' : passes['start_angle_to_goal'].iloc[0],
+                            'start_distance_to_goal' :passes['start_distance_to_goal'].iloc[0] ,
+                            'opponents_beyond':passes['opponents_beyond'].iloc[0],
+                            'opponents_between' : passes['opponents_between'].iloc[0], 
+                            'packing' : passes['packing'].iloc[0], 
+                            'average_speed_of_teammates' : passes['average_speed_of_teammates'].iloc[0], 
+                            'average_speed_of_opponents' : passes['average_speed_of_opponents'].iloc[0] ,
+                            'pressure_level_passer' : passes['pressure level passer'].iloc[0],
+                            'opponents_nearby' : passes['opponents_nearby'].iloc[0],
+                            'possession_xg' : passes['possession_xg'].iloc[0],
+                            'teammates_beyond' : passes['teammates_beyond'].iloc[0],
+                            'teammates_behind' : passes['teammates_behind'].iloc[0],
+                            'opponents_beyond' : passes['opponents_beyond'].iloc[0],
+                            'opponents_behind' : passes['opponents_behind'].iloc[0]
+                            }
 
-
-
+            feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
+            
             pass_description = (
-                f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_id,possession_team_id)} \n and the passer is {player_name} from {team_name} team." 
-                f"This pass has an xT value of {xT:.3f}."
-                f"{sentences.describe_xg_pass(xG)}"
-                f"The number of teammates "
+                f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
+                f"{sentences.describe_xT_pass(xT,xG)}"
             )
-            #pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
+            pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
 
             #shot_description += '\n' + sentences.describe_shot_contributions(pass_contributions, pass_features)
 
@@ -594,7 +610,6 @@ class PassDescription_xgboost(Description):
                 st.write(pass_description)
             
             return pass_description 
-        
 
         def get_prompt_messages(self):
             prompt = (

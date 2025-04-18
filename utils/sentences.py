@@ -383,7 +383,13 @@ def describe_pass_features(features, competition):
         descriptions.append(f" with moderate angle covering distance {features['start_distance_to_goal']:.2f}m aiming to the goal area, maintainig control while progressing.")
     else:
         descriptions.append(f" with wide-angle covering distance {features['start_distance_to_goal']:.2f}m aiming to the goal area, possibly trying to spread out the defense and create space.")
-        
+    
+
+    # teammates behind and beyond 
+    descriptions.append(f" There were {features['teammates_beyond']} teammates positioned ahead of the passer and {features['teammates_behind']} teammates behind the passer at the moment of the pass.")
+    descriptions.append(f" There were {features['opponents_beyond']} teammates positioned ahead of the passer and {features['opponents_behind']} opponents behind the passer at the moment of the pass.")
+
+
     # opponents_between
     if features['opponents_between'] <= thresholds['opponents_between'].iloc[3]:
         descriptions.append(" There was no opponents in the passing lane ")
@@ -420,6 +426,91 @@ def describe_pass_features(features, competition):
     else :
         descriptions.append(" Pressure level information is unavailable or not classified.")
     return descriptions
+
+
+### for logistic model 
+def read_pass_feature_thresholds_logistic(competition):
+    competitions_dict_params = {
+        "Allsevenskan 2022": "data/feature_description_passes.csv",
+        "Allsevenskan 2023": "data/feature_description_passes.csv"
+        # You can add more pass-related competitions here in the future
+    }
+
+    file_path = competitions_dict_params.get(competition)
+    
+    if file_path is None:
+        raise ValueError(f"Competition '{competition}' not found in pass feature descriptions.")
+
+    thresholds_pass = pd.read_csv(file_path, index_col=0)
+    return thresholds_pass
+
+def describe_pass_features_logistic(features, competition):
+    descriptions = []
+
+    # Step 1: Load thresholds
+    thresholds = read_pass_feature_thresholds(competition)
+
+    # pass_length
+    if features['pass_length'] <= thresholds['pass_length'].iloc[4]:
+        descriptions.append(" It was a short pass")
+    elif features['pass_length'] <= thresholds['pass_length'].iloc[5]:
+        descriptions.append(" It was a medium length pass")
+    else:
+        descriptions.append(" It was a long pass")
+
+    # start_angle_to_goal
+
+    if features['start_angle_to_goal'] <= thresholds['start_angle_to_goal'].iloc[4]:
+        descriptions.append(f" with narrow angle covering distance {features['start_distance_to_goal']:.2f}m aiming towards the goal area, a bold attacking move.")
+        
+    elif features['start_angle_to_goal'] <= thresholds['start_angle_to_goal'].iloc[5]:
+        descriptions.append(f" with moderate angle covering distance {features['start_distance_to_goal']:.2f}m aiming to the goal area, maintainig control while progressing.")
+    else:
+        descriptions.append(f" with wide-angle covering distance {features['start_distance_to_goal']:.2f}m aiming to the goal area, possibly trying to spread out the defense and create space.")
+    
+
+    # teammates behind and beyond 
+    descriptions.append(f" There were {features['teammates_beyond']} teammates positioned ahead of the passer at the moment of the pass.")
+    descriptions.append(f" There were {features['opponents_beyond']} teammates positioned ahead of the passer at the moment of the pass.")
+    
+
+    # opponents_between
+    if features['opponents_between'] <= thresholds['opponents_between'].iloc[3]:
+        descriptions.append(" There was no opponents in the passing lane ")
+    elif features['opponents_between'] <= thresholds['opponents_between'].iloc[4]:
+        descriptions.append(" The passing lane was mostly open with few opponents")
+    else:
+        descriptions.append("The passing lane was crowded with opponents")
+
+    # packing
+    if features['packing'] <= thresholds['packing'].iloc[3]:
+        descriptions.append(" and there was no opponent bypassed within 5m.")
+    elif features['packing'] <= thresholds['packing'].iloc[4]:
+        descriptions.append(" and there was 1 opponent bypassed within 5m.")
+    elif features['packing'] <= thresholds['packing'].iloc[5]:
+        descriptions.append(" and there were 2 opponents bypassed within 5m.")
+    elif features['packing'] <= thresholds['packing'].iloc[6]:
+        descriptions.append(" and there were 3 opponents bypassed within 5m.")    
+    else:
+        descriptions.append(f" and there were {features['packing']} opponents bypassed within 5m.")    
+
+    # Step 2: Categorical - Pressure level on passer
+    pressure = features['pressure_level_passer']
+    
+    if pressure == "Low Pressure":
+        if features['opponents_nearby'] < 2:
+            descriptions.append(f" There is {features['opponents_nearby']} nearby opponent within 6m, creating low pressure at the moment of the pass.")
+        else :
+            descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating low pressure at the moment of the pass.")
+
+    elif pressure == "Middle Pressure":
+        descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating moderate pressure at the moment of the pass.")
+    elif pressure == "High Pressure":
+        descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating high pressure at the moment of the pass.")
+    else :
+        descriptions.append(" Pressure level information is unavailable or not classified.")
+    return descriptions
+
 
 def describe_pass_single_feature(feature_name, feature_value):
     if feature_name == "pressure level passer":

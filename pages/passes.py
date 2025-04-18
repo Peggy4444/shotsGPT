@@ -94,7 +94,7 @@ pass_data = Passes(selected_competition,selected_match_id)
 pass_df = pass_data.df_pass
 tracking_df = pass_data.df_tracking
 pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col and col != "xT"]]
-
+pass_df_xgboost = pass_data.pass_df_xgboost
 
 # Dropdown showing actual pass IDs
 selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id'].tolist())
@@ -186,11 +186,10 @@ with tab2:
 with tab3:
     st.header("XGBoost")
 
-    model = Passes.load_xgboost_model(selected_competition)
-    pass_df_xgboost = pass_df.drop(['speed_difference', 'possession_xG_target','h1','h2','h3','h4'],axis=1)
+    model = pass_data.load_xgboost_model(selected_competition)
     st.write(pass_df_xgboost.astype(str))
     st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
-    feature_contrib_df = Passes.get_feature_contributions(pass_df_xgboost, model)
+    feature_contrib_df = pass_data.feature_contrib_df
     st.write(feature_contrib_df.astype(str))
 
     # Show the XGBoost feature contribution plot
