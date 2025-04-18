@@ -1296,7 +1296,7 @@ class Passes(Data):
         X = pass_df_xgboost[feature_cols]
 
         # 3. Predict xT probabilities using the classifier
-        xT_probabilities = model.predict_proba(X)[:, 1]
+        xT_probabilities = model.predict_proba(X)[:,1]
 
         # 4. Compute SHAP values
         explainer = shap.Explainer(model, X)

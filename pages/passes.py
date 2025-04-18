@@ -139,7 +139,7 @@ with tab1:
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
 
-    descriptions = PassDescription_logistic(pass_data,df_contributions,pass_id, selected_competition)
+    descriptions = PassDescription_logistic(pass_data,df_contributions ,pass_id, selected_competition)
 
 
   
