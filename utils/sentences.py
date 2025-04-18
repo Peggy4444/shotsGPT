@@ -75,27 +75,27 @@ def describe_xT_pass(xT,xG):
     if xG != 0:
         if xT < 0.024800:
             if xG < 0.066100:
-                description = f"This pass has low xT and probability of pass being a shot is {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
+                description = f" It had low xT and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
             else:
-                description = f"This pass has low xT probability of pass being a shot is {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
+                description = f" It had low xT probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
         elif xT > 0.024800 and xT <= 0.066100:
             if xG < 0.066100:
-                description = f"This pass has moderate xT value and probability of pass being a shot is {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
+                description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
             else:
-                description = f"This pass has moderate xT value and probability of pass being a shot is {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
+                description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
         elif xT > 0.066100 and xT <  0.150000:
             if xG < 0.066100:
-                description = f"This pass has high xT and probability of pass being a shot is {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
+                description = f" It had high xT and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
             else:
-                description = f"This pass has high xT and probability of pass being a shot is {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
+                description = f" It had high xT and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
         else:
             if xG < 0.066100:
-                description = f"This pass has excellent xT and probability of pass being a shot is {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
+                description = f" It had excellent xT and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
             else:
-                description = f"This pass has excellent xT and probability of pass being a shot is {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
+                description = f" It had excellent xT and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
             
     else:
-        description = f"The pass did not lead to a shot and opportunities to score goal is less. This is a safe pass."
+        description = f" It did not lead to a shot, opportunities to score goal is less and was a safe pass."
     return description
 
 
@@ -342,6 +342,158 @@ def describe_shot_single_feature(feature_name, feature_value):
             return "the shot was taken from a broad angle to the right of the goalkeeper."
     
     # Default case if the feature is unrecognized
+    return f"No description available for {feature_name}."
+
+
+def read_pass_feature_thresholds(competition):
+    competitions_dict_params = {
+        "Allsevenskan 2022": "data/feature_description_passes.csv",
+        "Allsevenskan 2023": "data/feature_description_passes.csv"
+        # You can add more pass-related competitions here in the future
+    }
+
+    file_path = competitions_dict_params.get(competition)
+    
+    if file_path is None:
+        raise ValueError(f"Competition '{competition}' not found in pass feature descriptions.")
+
+    thresholds_pass = pd.read_csv(file_path, index_col=0)
+    return thresholds_pass
+
+def describe_pass_features(features, competition):
+    descriptions = []
+
+    # Step 1: Load thresholds
+    thresholds = read_pass_feature_thresholds(competition)
+
+    # pass_length
+    if features['pass_length'] <= thresholds['pass_length'].iloc[4]:
+        descriptions.append(" It was a short pass")
+    elif features['pass_length'] <= thresholds['pass_length'].iloc[5]:
+        descriptions.append(" It was a medium length pass")
+    else:
+        descriptions.append(" It was a long pass")
+
+    # start_angle_to_goal
+
+    if features['start_angle_to_goal'] <= thresholds['start_angle_to_goal'].iloc[4]:
+        descriptions.append(f" with narrow angle covering distance {features['start_distance_to_goal']:.2f}m aiming towards the goal area, a bold attacking move.")
+        
+    elif features['start_angle_to_goal'] <= thresholds['start_angle_to_goal'].iloc[5]:
+        descriptions.append(f" with moderate angle covering distance {features['start_distance_to_goal']:.2f}m aiming to the goal area, maintainig control while progressing.")
+    else:
+        descriptions.append(f" with wide-angle covering distance {features['start_distance_to_goal']:.2f}m aiming to the goal area, possibly trying to spread out the defense and create space.")
+        
+    # opponents_between
+    if features['opponents_between'] <= thresholds['opponents_between'].iloc[3]:
+        descriptions.append(" There was no opponents in the passing lane ")
+    elif features['opponents_between'] <= thresholds['opponents_between'].iloc[4]:
+        descriptions.append(" The passing lane was mostly open with few opponents")
+    else:
+        descriptions.append("The passing lane was crowded with opponents")
+
+    # packing
+    if features['packing'] <= thresholds['packing'].iloc[3]:
+        descriptions.append(" and there was no opponent bypassed within 5m.")
+    elif features['packing'] <= thresholds['packing'].iloc[4]:
+        descriptions.append(" and there was 1 opponent bypassed within 5m.")
+    elif features['packing'] <= thresholds['packing'].iloc[5]:
+        descriptions.append(" and there were 2 opponents bypassed within 5m.")
+    elif features['packing'] <= thresholds['packing'].iloc[6]:
+        descriptions.append(" and there were 3 opponents bypassed within 5m.")    
+    else:
+        descriptions.append(f" and there were {features['packing']} opponents bypassed within 5m.")    
+
+    # Step 2: Categorical - Pressure level on passer
+    pressure = features['pressure_level_passer']
+    
+    if pressure == "Low Pressure":
+        if features['opponents_nearby'] < 2:
+            descriptions.append(f" There is {features['opponents_nearby']} nearby opponent within 6m, creating low pressure at the moment of the pass.")
+        else :
+            descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating low pressure at the moment of the pass.")
+
+    elif pressure == "Middle Pressure":
+        descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating moderate pressure at the moment of the pass.")
+    elif pressure == "High Pressure":
+        descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating high pressure at the moment of the pass.")
+    else :
+        descriptions.append(" Pressure level information is unavailable or not classified.")
+    return descriptions
+
+def describe_pass_single_feature(feature_name, feature_value):
+    if feature_name == "pressure level passer":
+        if feature_value == "low":
+            return "The passer had little or no pressure when delivering the pass."
+        elif feature_value == "medium":
+            return "The passer was under moderate pressure."
+        elif feature_value == "high":
+            return "The passer was under high pressure from nearby opponents."
+
+    if feature_name == "pass_length":
+        if feature_value < 8.5:
+            return "The pass was short."
+        elif feature_value < 18.2:
+            return "The pass had moderate length."
+        else:
+            return "The pass was long."
+
+    if feature_name == "start_angle_to_goal":
+        if feature_value < 15:
+            return "The pass started from a narrow angle to the goal."
+        elif feature_value < 45:
+            return "The pass started from a moderate angle to the goal."
+        else:
+            return "The pass started from a wide angle to the goal."
+
+    if feature_name == "start_distance_to_goal":
+        if feature_value < 20:
+            return "The pass started close to the goal."
+        elif feature_value < 35:
+            return "The pass started from a moderate distance to the goal."
+        else:
+            return "The pass started far from the goal."
+
+    if feature_name == "opponents_beyond":
+        if feature_value < 2:
+            return "Few opponents were bypassed by the pass."
+        elif feature_value < 5:
+            return "A moderate number of opponents were bypassed."
+        else:
+            return "Many opponents were bypassed by the pass."
+
+    if feature_name == "opponents_between":
+        if feature_value < 1:
+            return "There were few opponents between the passer and the receiver."
+        elif feature_value < 3:
+            return "There were some opponents blocking the passing lane."
+        else:
+            return "There were many opponents between the passer and the receiver."
+
+    if feature_name == "packing":
+        if feature_value < 1.5:
+            return "The pass had low packing value."
+        elif feature_value < 4:
+            return "The pass had moderate packing value."
+        else:
+            return "The pass had high packing value, bypassing many opponents."
+
+    if feature_name == "average_speed_of_teammates":
+        if feature_value < 1.5:
+            return "Teammates were moving slowly during the pass."
+        elif feature_value < 3:
+            return "Teammates were moving at a moderate speed."
+        else:
+            return "Teammates were moving quickly, possibly making runs."
+
+    if feature_name == "average_speed_of_opponents":
+        if feature_value < 1.5:
+            return "Opponents were moving slowly during the pass."
+        elif feature_value < 3:
+            return "Opponents were moving at a moderate speed."
+        else:
+            return "Opponents were moving quickly, possibly pressing."
+
     return f"No description available for {feature_name}."
 
 

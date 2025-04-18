@@ -38,7 +38,7 @@ from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn
-from classes.description import PassDescription_logistic
+from classes.description import PassDescription_logistic,PassDescription_xgboost
 
 
 # Function to load and inject custom CSS from an external file
@@ -217,6 +217,8 @@ with tab3:
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
+
+    descriptions = PassDescription_xgboost(pass_data,feature_contrib_df,pass_id, selected_competition)
 
 
 
