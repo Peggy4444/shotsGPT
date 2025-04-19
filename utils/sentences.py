@@ -512,84 +512,6 @@ def describe_pass_features_logistic(features, competition):
     return descriptions
 
 
-def describe_pass_single_feature(feature_name, feature_value):
-    if feature_name == "pressure level passer":
-        if feature_value == "low":
-            return "The passer had little or no pressure when delivering the pass."
-        elif feature_value == "medium":
-            return "The passer was under moderate pressure."
-        elif feature_value == "high":
-            return "The passer was under high pressure from nearby opponents."
-
-    if feature_name == "pass_length":
-        if feature_value < 8.5:
-            return "The pass was short."
-        elif feature_value < 18.2:
-            return "The pass had moderate length."
-        else:
-            return "The pass was long."
-
-    if feature_name == "start_angle_to_goal":
-        if feature_value < 15:
-            return "The pass started from a narrow angle to the goal."
-        elif feature_value < 45:
-            return "The pass started from a moderate angle to the goal."
-        else:
-            return "The pass started from a wide angle to the goal."
-
-    if feature_name == "start_distance_to_goal":
-        if feature_value < 20:
-            return "The pass started close to the goal."
-        elif feature_value < 35:
-            return "The pass started from a moderate distance to the goal."
-        else:
-            return "The pass started far from the goal."
-
-    if feature_name == "opponents_beyond":
-        if feature_value < 2:
-            return "Few opponents were bypassed by the pass."
-        elif feature_value < 5:
-            return "A moderate number of opponents were bypassed."
-        else:
-            return "Many opponents were bypassed by the pass."
-
-    if feature_name == "opponents_between":
-        if feature_value < 1:
-            return "There were few opponents between the passer and the receiver."
-        elif feature_value < 3:
-            return "There were some opponents blocking the passing lane."
-        else:
-            return "There were many opponents between the passer and the receiver."
-
-    if feature_name == "packing":
-        if feature_value < 1.5:
-            return "The pass had low packing value."
-        elif feature_value < 4:
-            return "The pass had moderate packing value."
-        else:
-            return "The pass had high packing value, bypassing many opponents."
-
-    if feature_name == "average_speed_of_teammates":
-        if feature_value < 1.5:
-            return "Teammates were moving slowly during the pass."
-        elif feature_value < 3:
-            return "Teammates were moving at a moderate speed."
-        else:
-            return "Teammates were moving quickly, possibly making runs."
-
-    if feature_name == "average_speed_of_opponents":
-        if feature_value < 1.5:
-            return "Opponents were moving slowly during the pass."
-        elif feature_value < 3:
-            return "Opponents were moving at a moderate speed."
-        else:
-            return "Opponents were moving quickly, possibly pressing."
-
-    return f"No description available for {feature_name}."
-
-
-
-
 feature_name_mapping = {
     'vertical_distance_to_center_contribution': 'squared distance to center',
     'euclidean_distance_to_goal_contribution': 'euclidean distance to goal',
@@ -707,6 +629,337 @@ def describe_shot_contributions1(shot_contributions, feature_name_mapping=featur
 
         # Distinguish between positive and negative contributions
         if original_contribution > 0:
+            explanation = f"{feature_display_name} has a {level} positive contribution, which increased the xG of the shot"
+        elif original_contribution < 0:
+            explanation = f"{feature_display_name} has a {level} negative contribution, which reduced the xG of the shot"
+        else:
+            explanation = f"{feature_display_name} had no contribution to the xG of the shot"
+
+        # Add to the text
+        text += f"{explanation}\n"
+    
+    return text
+
+### pass features
+def describe_pass_single_feature(feature_name, feature_value):
+    if feature_name == "pass_length":
+        if feature_value < 14.456917459901321:
+            return "the pass was short"
+        elif feature_value < 24.36115859931905:
+            return "the pass had moderate length"
+        else:
+            return "the pass was long."
+
+    if feature_name == "start_angle_to_goal":
+        if feature_value < 4.692139370656406:
+            return "the pass started from a narrow angle to the goal"
+        elif feature_value < 5.268353760844164:
+            return "the pass started from a moderate angle to the goal"
+        else:
+            return "the pass started from a wide angle to the goal"
+    
+    if feature_name == "end_angle_to_goal":
+        if feature_value < 4.146716596474326:
+            return "the pass ended from a narrow angle to the goal"
+        elif feature_value < 4.924911291472834:
+                return"the pass ended from a moderate angle to the goal"
+        else:
+            return"the pass ended from a wide angle to the goal"
+    
+
+    if feature_name == "start_distance_to_sideline":
+        if feature_value < 8.0449:
+            return "the pass started close to the sideline"
+        elif feature_value < 14.5973:
+            return "the pass started moderately close to the sideline"
+        elif feature_value < 22.4270:
+            return "the pass started near the central area of the pitch"
+        elif feature_value < 34:
+            return "the pass started close to the center of the pitch"
+        else:
+            return "the pass started at the exact center line of the pitch"
+
+    if feature_name == 'end_distance_to_sideline':
+        if feature_value < 6.481136227080518:
+            return "the pass ended close to the sideline"
+        elif feature_value < 14.28:
+            return "the pass started moderately close to the sideline"
+        elif feature_value < 24.48:
+            return "the pass ended close to the center of the pitch"
+        else:
+            return "the pass ended at exact center line of the pitch"
+
+    if feature_name == "start_distance_to_goal":
+        if feature_value < 2.7301764469404706:
+            return "the pass started close to the goal"
+        elif feature_value < 30.92668344228875:
+            return "the pass started from a moderate distance to the goal"
+        else:
+            return "the pass started far from the goal"
+        
+
+    if feature_name == "end_distance_to_goal":
+        if feature_value < 1.0499999999999972:
+            return "the pass ended close to the goal"
+        elif feature_value < 29.13286975222317:
+            return "the pass ended from a moderate distance to the goal"
+        else:
+            return "the pass ended far from the goal"
+    
+    if feature_name == "pass_angle":
+        if feature_value <= 0:
+            return "the pass was played backward or toward the player's own half"
+        elif feature_value < 8.0449:
+            return "the pass was slightly angled, likely a lateral or safe pass"
+        elif feature_value < 14.5973:
+            return "the pass had a moderate forward angle, possibly aimed at progressing play"
+        elif feature_value < 22.4270:
+            return "the pass was quite forward-oriented, likely breaking lines or pushing into advanced areas"
+        elif feature_value < 34:
+            return "the pass had a strong attacking intent, directed sharply toward the opponent's goal"
+        else:
+            return "the pass angle was extremely forward, potentially a long ball or through ball"
+
+    if feature_name == "teammates_beyond":
+        if feature_value <= 0:
+            return "there were no teammates ahead of passer"
+        elif feature_value <= 5:
+            return "there were few teammates ahead of passer"
+        else:
+            return "there were many teammates ahead of passer"
+
+    if feature_name == 'teammates_behind':
+        if feature_value == 0:
+            return "there were no teammates behind the passer"
+        elif feature_value < 5:
+            return "there were few teammates behind the passer"
+        else:
+            return "there were many teammates behind the passer"
+       
+    if feature_name == 'opponents_behind':
+        if feature_value == 0:
+            return "there were no opponents behind the passer"
+        elif feature_value < 5:
+            return "there were few opponents behind the passer"
+        else:
+            return "there were many opponents behind the passer"
+
+
+    if feature_name == "opponents_beyond":
+        if feature_value == 0:
+            return "there were no opponents ahead of the passer"
+        if feature_value < 6:
+            return "few opponents were ahead of the passer"
+        elif feature_value < 10:
+            return "a moderate number of opponents were ahead of the passer"
+        else:
+            return "many opponents were ahead of the passer"
+
+    if feature_name == "pressure_on_passer":
+        if feature_value < 0.3617676262544192:
+            return "the pressure on passer has low value"
+        elif feature_value < 0.6900539491099027:
+            return "the pressure on passer has moderate value"
+        else:
+            return "the pressure on passer has high value"
+
+    if feature_name == "opponents_nearby":
+        if feature_value == 0:
+            return "there were no opponents nearby passer at the moment of the pass"
+        if feature_value < 2:
+            return "there were few opponents nearby passer at the moment of the pass"
+        else:
+            return "there were more number of opponents nearby passer at the moment of the pass"
+
+    if feature_name == "opponents_between":
+        if feature_value <= 0:
+            return "there was no opponents in the passing lane"
+        elif feature_value < 3:
+            return "the passing lane was mostly open with few opponents"
+        else:
+            return "the passing lane was crowded with opponents"
+
+
+    
+    if feature_name == "teammates_nearby":
+        if feature_value <= 0:
+            return "there was no teammates nearby the passer at the moment of the pass"
+        if feature_value < 3:
+            return "there were few teammates nearby the passer at the moment of the pass"
+        else:
+            return "there were more number of teammates nearby the passer near at the moment of the pass"
+        
+    if feature_name == "packing":
+        if feature_value <= 0:
+            return "the packing value is 0 with no opponents bypassed"
+        elif feature_value < 3:
+            return "there was moderate packing value with few opponents bypassed"
+        else:
+            return "there was high packing value, bypassing many opponents"
+
+    if feature_name == "average_speed_of_teammates":
+        if feature_value < 1.6639090909090906:
+            return "teammates were moving slowly during the pass"
+        elif feature_value < 2.8222272727272735:
+            return "teammates were moving at a moderate speed"
+        else:
+            return "teammates were moving quickly, possibly making runs"
+
+    if feature_name == "average_speed_of_opponents":
+        if feature_value < 1.726618181818181:
+            return "opponents were moving slowly during the pass"
+        elif feature_value < 3.0413181818181814:
+            return "opponents were moving at a moderate speed"
+        else:
+            return "opponents were moving quickly, possibly pressing"
+    
+    if feature_name == "speed_difference":
+        if feature_value <= -0.122:
+            return "the attacking team were significantly slower than the defending team"
+        else:
+            return "the attacking team were faster than the defending team"
+    
+    return f"No description available for {feature_name}."
+
+
+#logistic model 
+feature_name_mapping_logistic = { "start_distance_to_goal_contribution" : "start distance to goal",
+    "end_distance_to_goal_contribution": "end distance to goal",
+    "pass_length_contribution": "pass length",
+    "pass_angle_contribution": "pass angle",
+    "start_angle_to_goal_contribution" : "start angle to the goal",
+    "end_angle_to_goal_contribution" : "end angle to goal",
+    "start_distance_to_sideline_contribution" : "start distance to sideline",
+    "end_distance_to_sideline_contribution" : "end distance to sideline", 
+    "pressure_on_passer_contribution": "pressure on passer",
+    "teammates_beyond_contribution": "teammates beyond",
+    "opponents_beyond_contribution": "opponents beyond",
+    "opponents_between_contribution": "Opponents between",
+    "packing_contribution" : "opponents bypassed",
+    "opponents_nearby_contribution": "opponents nearby",
+    "teammates_nearby_contribution": "teammates nearby"
+}
+
+def describe_pass_contributions_logistic(contributions, pass_features, feature_name_mapping=feature_name_mapping_logistic):
+    text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
+    
+    # Extract the contributions from the shot_contributions DataFrame
+    contributions = contributions.iloc[0].drop(['match_id', 'id', 'xT'])  # Drop irrelevant columns
+    
+    # Sort the contributions by their absolute value (magnitude) in descending order
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+    
+    # Get the top 4 contributions
+    top_contributions = sorted_contributions
+    
+    # Loop through the top contributions to generate descriptions
+    for idx, (feature, contribution) in enumerate(top_contributions.items()):
+
+        # Get the original sign of the contribution
+        original_contribution = contributions[feature]
+
+        if original_contribution >= 0.05 or original_contribution <= -0.05:
+        
+            # Remove "_contribution" suffix to match feature names in shot_features
+            feature_name = feature.replace('_contribution', '')
+            
+            # Use feature_name_mapping to get the display name for the feature (if available)
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            
+            # Get the feature value from shot_features
+            feature_value = pass_features[feature_name]
+            
+            # Get the feature description
+            feature_value_description = describe_pass_single_feature(feature_name, feature_value)
+            
+            # Add the feature's contribution to the xG description
+            if original_contribution > 0:
+                impact = 'maximum positive contribution'
+                impact_text = "increased the xT."
+            elif original_contribution < 0:
+                impact = 'maximum negative contribution'
+                impact_text = "reduced the xT."
+            else:
+                impact = 'no contribution'
+                impact_text = "had no impact on the xT."
+
+            # Use appropriate phrasing for the first feature and subsequent features
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+        
+
+    return text
+
+
+#xgboost,xNN,CNN,trees models
+feature_name_mapping_pass = { "start_distance_to_goal" : "start distance to goal",
+    "end_distance_to_goal": "end distance to goal",
+    "pass_length": "pass length",
+    "pass_angle": "pass angle",
+    "start_angle_to_goal" : "start angle to the goal",
+    "end_angle_to_goal" : "end angle to goal",
+    "start_distance_to_sideline" : "start distance to sideline",
+    "end_distance_to_sideline" : "end distance to sideline", 
+    "opponents_behind": "opponents behind",
+    "teammates_behind": "teammates behind",
+    "pressure_on_passer": "pressure on passer",
+    "teammates_beyond": "teammates beyond",
+    "opponents_beyond": "opponents beyond",
+    "opponents_between": "Opponents between",
+    "packing" : "opponents bypassed",
+    "opponents_nearby": "opponents nearby",
+    "average_speed_of_teammates": "average speed of teammates",
+    "average_speed_of_opponents": "average speed of opponents",
+    "teammates_nearby": "teammates nearby"
+}
+
+def describe_pass_contributions(contributions, feature_name_mapping_pass=feature_name_mapping_pass, thresholds=None):
+    
+    # Default thresholds if none are provided
+    thresholds = thresholds or {
+        'very_large': 0.75,
+        'large': 0.50,
+        'moderate': 0.25,
+        'low': 0.00
+    }
+
+    # Initialize a list to store contributions that are not 'match_id', 'id', or 'xG'
+    valid_contributions = {}
+
+    # Loop through the columns to select valid ones
+    for feature, contribution in contributions.iloc[0].items():
+        if feature not in ['match_id', 'id', 'xG']:  # Skip these columns
+            valid_contributions[feature] = contribution
+
+    # Convert to Series and sort by absolute values in descending order
+    sorted_contributions = (
+        pd.Series(valid_contributions)
+        .apply(lambda x: abs(x))
+        .sort_values(ascending=False)
+    )
+
+    # Loop through the sorted contributions and categorize them based on thresholds
+    for feature, contribution in sorted_contributions.items():
+        # Get the original sign of the contribution
+        original_contribution = valid_contributions[feature]
+
+        # Use the feature_name_mapping dictionary to get the display name for the feature
+        feature_display_name = feature_name_mapping.get(feature, feature)
+
+        # Determine the contribution level
+        if abs(contribution) > thresholds['very_large']:
+            level = 'very large'
+        elif abs(contribution) > thresholds['large']:
+            level = 'large'
+        elif abs(contribution) > thresholds['moderate']:
+            level = 'moderate'
+        else:
+            level = 'low'
+
+        # Distinguish between positive and negative contributions
+        if original_contribution > 0:
             explanation = f"{feature_display_name} has a {level} positive contribution, which increased the xG of the shot."
         elif original_contribution < 0:
             explanation = f"{feature_display_name} has a {level} negative contribution, which reduced the xG of the shot."
@@ -717,3 +970,4 @@ def describe_shot_contributions1(shot_contributions, feature_name_mapping=featur
         text += f"{explanation}\n"
     
     return text
+

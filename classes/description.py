@@ -484,16 +484,21 @@ class PassDescription_logistic(Description):
             pass_features = {'pass_length' : passes['pass_length'].iloc[0]  ,
                             'start_angle_to_goal' : passes['start_angle_to_goal'].iloc[0],
                             'start_distance_to_goal' :passes['start_distance_to_goal'].iloc[0] ,
-                            'opponents_beyond':passes['opponents_beyond'].iloc[0],
                             'opponents_between' : passes['opponents_between'].iloc[0], 
                             'packing' : passes['packing'].iloc[0], 
-                            'average_speed_of_teammates' : passes['average_speed_of_teammates'].iloc[0], 
-                            'average_speed_of_opponents' : passes['average_speed_of_opponents'].iloc[0] ,
                             'pressure_level_passer' : passes['pressure level passer'].iloc[0],
                             'opponents_nearby' : passes['opponents_nearby'].iloc[0],
                             'possession_xg' : passes['possession_xg'].iloc[0],
                             'teammates_beyond' : passes['teammates_beyond'].iloc[0],
                             'opponents_beyond' : passes['opponents_beyond'].iloc[0],
+                            'start_distance_to_sideline' : passes['start_distance_to_sideline'].iloc[0],
+                            'end_distance_to_sideline' : passes['end_distance_to_sideline'].iloc[0],
+                            'speed_difference' : passes['speed_difference'].iloc[0],
+                            'pass_angle' : passes['pass_angle'].iloc[0],
+                            'teammates_nearby' : passes['teammates_nearby'].iloc[0],
+                            'end_distance_to_goal' : passes['end_distance_to_goal'].iloc[0],
+                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0],
+                            'pressure_on_passer' : passes['pressure_on_passer'].iloc[0]
                             }
 
             feature_descriptions = sentences.describe_pass_features_logistic(pass_features, self.competition)
@@ -503,7 +508,7 @@ class PassDescription_logistic(Description):
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
 
-            #shot_description += '\n' + sentences.describe_shot_contributions(pass_contributions, pass_features)
+            pass_description += '\n' + sentences.describe_pass_contributions_logistic(contributions, pass_features)
 
             with st.expander("Synthesized Text"):
                 st.write(pass_description)
