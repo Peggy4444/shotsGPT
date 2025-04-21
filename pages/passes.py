@@ -38,7 +38,7 @@ from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn
-from classes.description import PassDescription_logistic,PassDescription_xgboost
+from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
 
 
 # Function to load and inject custom CSS from an external file
@@ -95,6 +95,8 @@ pass_df = pass_data.df_pass
 tracking_df = pass_data.df_tracking
 pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col and col != "xT"]]
 pass_df_xgboost = pass_data.pass_df_xgboost
+df_passes_xnn = pass_data.pass_df_xNN #extracting dataset for xNN from classes Pass
+
 
 # Dropdown showing actual pass IDs
 selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id'].tolist())
@@ -152,11 +154,11 @@ with tab2:
     model = Passes.load_position_model(selected_competition, show_summary=True)
     model = Passes.load_event_model(selected_competition,show_summary=True)
 
-    df_passes_xnn = pass_df.drop(['speed_difference'],axis=1)
+   
     st.write(df_passes_xnn.astype(str))
 
     st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from xNN model</h3>", unsafe_allow_html=True)
-    df_xnn_contrib = pass_data.get_feature_contributions_xNN(selected_competition)
+    df_xnn_contrib = pass_data.contributions_xNN
     st.write(df_xnn_contrib.astype(str))
 
     excluded_columns = ['xT_predicted','id', 'match_id']
@@ -181,19 +183,21 @@ with tab2:
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
 
+    descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,pass_id, selected_competition)
+
 
  
 with tab3:
-    st.header("XGBoost")
+    st.header("xgBoost")
 
-    model = pass_data.load_xgboost_model(selected_competition)
+    #model = pass_data.load_xgboost_model(selected_competition)
     st.write(pass_df_xgboost.astype(str))
     st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
     feature_contrib_df = pass_data.feature_contrib_df
     st.write(feature_contrib_df.astype(str))
 
     # Show the XGBoost feature contribution plot
-    st.markdown("<h3 style='font-size:18px; color:black;'>XGBoost contribution plot</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size:18px; color:black;'>xgBoost contribution plot</h3>", unsafe_allow_html=True)
 
     excluded_columns = ['xT_predicted','id', 'match_id']
     metrics = [col for col in feature_contrib_df.columns if col not in excluded_columns]
@@ -218,7 +222,7 @@ with tab3:
     visuals.show()
 
     descriptions = PassDescription_xgboost(pass_data,feature_contrib_df,pass_id, selected_competition)
-
+    
 
 
 with tab4:
