@@ -598,7 +598,10 @@ class PassDescription_xgboost(Description):
                             'teammates_beyond' : passes['teammates_beyond'].iloc[0],
                             'teammates_behind' : passes['teammates_behind'].iloc[0],
                             'opponents_beyond' : passes['opponents_beyond'].iloc[0],
-                            'opponents_behind' : passes['opponents_behind'].iloc[0]
+                            'opponents_behind' : passes['opponents_behind'].iloc[0],
+                            'pressure_on_passer' : passes['pressure_on_passer'].iloc[0],
+                            'pass_angle' : passes['pass_angle'].iloc[0],
+                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0]
                             }
 
             feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
@@ -609,7 +612,7 @@ class PassDescription_xgboost(Description):
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
 
-            #shot_description += '\n' + sentences.describe_shot_contributions(pass_contributions, pass_features)
+            pass_description += '\n' + sentences.describe_pass_contributions_xgboost(contributions, pass_features)
 
             with st.expander("Synthesized Text"):
                 st.write(pass_description)

@@ -641,7 +641,7 @@ def describe_shot_contributions1(shot_contributions, feature_name_mapping=featur
     return text
 
 ### pass features
-def describe_pass_single_feature(feature_name, feature_value):
+def describe_pass_single_feature(feature_name, feature_value): 
     if feature_name == "pass_length":
         if feature_value < 14.456917459901321:
             return "the pass was short"
@@ -915,59 +915,56 @@ feature_name_mapping_pass = { "start_distance_to_goal" : "start distance to goal
     "teammates_nearby": "teammates nearby"
 }
 
-def describe_pass_contributions(contributions, feature_name_mapping_pass=feature_name_mapping_pass, thresholds=None):
+# Contribution function for xgboost
+def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
-    # Default thresholds if none are provided
-    thresholds = thresholds or {
-        'very_large': 0.75,
-        'large': 0.50,
-        'moderate': 0.25,
-        'low': 0.00
-    }
+    # Extract the contributions from the shot_contributions DataFrame
+    contributions = feature_contrib_df.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
+    
+    # Sort the contributions by their absolute value (magnitude) in descending order
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+    
+    # Get the top 4 contributions
+    top_contributions = sorted_contributions
+    
+    # Loop through the top contributions to generate descriptions
+    for idx, (feature, contribution) in enumerate(top_contributions.items()):
 
-    # Initialize a list to store contributions that are not 'match_id', 'id', or 'xG'
-    valid_contributions = {}
-
-    # Loop through the columns to select valid ones
-    for feature, contribution in contributions.iloc[0].items():
-        if feature not in ['match_id', 'id', 'xG']:  # Skip these columns
-            valid_contributions[feature] = contribution
-
-    # Convert to Series and sort by absolute values in descending order
-    sorted_contributions = (
-        pd.Series(valid_contributions)
-        .apply(lambda x: abs(x))
-        .sort_values(ascending=False)
-    )
-
-    # Loop through the sorted contributions and categorize them based on thresholds
-    for feature, contribution in sorted_contributions.items():
         # Get the original sign of the contribution
-        original_contribution = valid_contributions[feature]
+        original_contribution = contributions[feature]
 
-        # Use the feature_name_mapping dictionary to get the display name for the feature
-        feature_display_name = feature_name_mapping.get(feature, feature)
+        if original_contribution >= 0.05 or original_contribution <= -0.05:
+        
+            # Remove "_contribution" suffix to match feature names in shot_features
+            #feature_name = feature.replace('_contribution', '')
+            
+            # Use feature_name_mapping to get the display name for the feature (if available)
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            
+            # Get the feature value from shot_features
+            feature_value = pass_features[feature]
+            
+            # Get the feature description
+            feature_value_description = describe_pass_single_feature(feature, feature_value)
+            
+            # Add the feature's contribution to the xG description
+            if original_contribution > 0:
+                impact = 'maximum positive contribution'
+                impact_text = "increased the xT."
+            elif original_contribution < 0:
+                impact = 'maximum negative contribution'
+                impact_text = "reduced the xT."
+            else:
+                impact = 'no contribution'
+                impact_text = "had no impact on the xT."
 
-        # Determine the contribution level
-        if abs(contribution) > thresholds['very_large']:
-            level = 'very large'
-        elif abs(contribution) > thresholds['large']:
-            level = 'large'
-        elif abs(contribution) > thresholds['moderate']:
-            level = 'moderate'
-        else:
-            level = 'low'
+            # Use appropriate phrasing for the first feature and subsequent features
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+        
 
-        # Distinguish between positive and negative contributions
-        if original_contribution > 0:
-            explanation = f"{feature_display_name} has a {level} positive contribution, which increased the xG of the shot."
-        elif original_contribution < 0:
-            explanation = f"{feature_display_name} has a {level} negative contribution, which reduced the xG of the shot."
-        else:
-            explanation = f"{feature_display_name} had no contribution to the xG of the shot."
-
-        # Add to the text
-        text += f"{explanation}\n"
-    
     return text
 
