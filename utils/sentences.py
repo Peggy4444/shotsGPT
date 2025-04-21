@@ -622,9 +622,12 @@ def describe_pass_features_logistic(features, competition):
     pressure = features['pressure_level_passer']
     
     if pressure == "Low Pressure":
-        if features['opponents_nearby'] < 2:
-            descriptions.append(f" There is {features['opponents_nearby']} nearby opponent within 6m, creating low pressure at the moment of the pass.")
-        else :
+       if features['opponents_nearby'] <= 2:
+        if features['opponents_nearby'] == 0:
+            descriptions.append(" There are no nearby opponents within 6m, creating low pressure at the moment of the pass.")
+        elif features['opponents_nearby'] == 1:
+            descriptions.append(" There is 1 nearby opponent within 6m, creating low pressure at the moment of the pass.")
+        else:
             descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating low pressure at the moment of the pass.")
 
     elif pressure == "Middle Pressure":
@@ -644,7 +647,7 @@ def describe_pass_single_feature(feature_name, feature_value):
         elif feature_value < 24.36115859931905:
             return "the pass had moderate length"
         else:
-            return "the pass was long."
+            return "the pass was long"
 
     if feature_name == "start_angle_to_goal":
         if feature_value < 4.692139370656406:
@@ -854,7 +857,7 @@ def describe_pass_contributions_logistic(contributions, pass_features, feature_n
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.05 or original_contribution <= -0.05:
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
         
             # Remove "_contribution" suffix to match feature names in shot_features
             feature_name = feature.replace('_contribution', '')
@@ -925,12 +928,11 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
     top_contributions = sorted_contributions
     
     # Loop through the top contributions to generate descriptions
-    for idx, (feature, contribution) in enumerate(top_contributions.items()):
-
+    for idx, (feature,contribution) in enumerate(top_contributions.items()):
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.05 or original_contribution <= -0.05:
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)
@@ -951,6 +953,7 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
             else:
                 impact = 'no contribution'
                 impact_text = "had no impact on the xT."
+                print(original_contribution)
 
             # Use appropriate phrasing for the first feature and subsequent features
             if idx == 0:
@@ -980,7 +983,7 @@ def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_na
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.05 or original_contribution <= -0.05:
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)

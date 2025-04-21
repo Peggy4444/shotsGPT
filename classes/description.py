@@ -604,7 +604,11 @@ class PassDescription_xNN(Description):
                             'opponents_behind' : passes['opponents_behind'].iloc[0],
                             'pressure_on_passer' : passes['pressure_on_passer'].iloc[0],
                             'pass_angle' : passes['pass_angle'].iloc[0],
-                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0]
+                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0],
+                            'start_distance_to_sideline' : passes['start_distance_to_sideline'].iloc[0],
+                            'end_distance_to_sideline' : passes['end_distance_to_sideline'].iloc[0],
+                            'end_distance_to_goal' : passes['end_distance_to_goal'].iloc[0],
+                            'teammates_nearby' : passes['teammates_nearby'].iloc[0]
                             }
 
             feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
@@ -708,7 +712,11 @@ class PassDescription_xgboost(Description):
                             'opponents_behind' : passes['opponents_behind'].iloc[0],
                             'pressure_on_passer' : passes['pressure_on_passer'].iloc[0],
                             'pass_angle' : passes['pass_angle'].iloc[0],
-                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0]
+                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0],
+                            'start_distance_to_sideline' : passes['start_distance_to_sideline'].iloc[0],
+                            'end_distance_to_sideline' : passes['end_distance_to_sideline'].iloc[0],
+                            'end_distance_to_goal' : passes['end_distance_to_goal'].iloc[0],
+                            'teammates_nearby' : passes['teammates_nearby'].iloc[0]                       
                             }
 
             feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
