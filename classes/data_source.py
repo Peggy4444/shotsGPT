@@ -837,7 +837,6 @@ class Passes(Data):
         #initializing for xNN model
         drop_cols_xNN = ['possession_xG_target','speed_difference','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
         self.pass_df_xNN = self.df_pass.drop(columns=[col for col in drop_cols_xNN if col in self.df_pass.columns])
-        xNN_model = self.load_xNN(competition)
         self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition)
 
     def get_data(self, match_id=None):
@@ -848,7 +847,6 @@ class Passes(Data):
         if match_id is not None:
             match_id = int(match_id)
             self.df_pass["match_id"] = self.df_pass["match_id"].astype(int)
-            #print("After filtering:", self.df_pass.shape)
             self.df_pass = self.df_pass[self.df_pass["match_id"] == match_id].reset_index(drop=True)
 
         return self.df_pass,self.df_tracking

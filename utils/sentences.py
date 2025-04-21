@@ -470,11 +470,11 @@ def describe_shot_contributions1(shot_contributions, feature_name_mapping=featur
     
     return text
 
+#thresholds for contribution features
 def read_pass_feature_thresholds(competition):
     competitions_dict_params = {
         "Allsevenskan 2022": "data/feature_description_passes.csv",
         "Allsevenskan 2023": "data/feature_description_passes.csv"
-        # You can add more pass-related competitions here in the future
     }
 
     file_path = competitions_dict_params.get(competition)
@@ -558,7 +558,6 @@ def read_pass_feature_thresholds_logistic(competition):
     competitions_dict_params = {
         "Allsevenskan 2022": "data/feature_description_passes.csv",
         "Allsevenskan 2023": "data/feature_description_passes.csv"
-        # You can add more pass-related competitions here in the future
     }
 
     file_path = competitions_dict_params.get(competition)
@@ -637,7 +636,7 @@ def describe_pass_features_logistic(features, competition):
     return descriptions
 
 
-### pass features
+### pass features defination for all models
 def describe_pass_single_feature(feature_name, feature_value): 
     if feature_name == "pass_length":
         if feature_value < 14.456917459901321:
@@ -840,7 +839,7 @@ feature_name_mapping_logistic = { "start_distance_to_goal_contribution" : "start
 def describe_pass_contributions_logistic(contributions, pass_features, feature_name_mapping=feature_name_mapping_logistic):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
-    # Extract the contributions from the shot_contributions DataFrame
+    # Extract the contributions from the pass_contributions DataFrame
     contributions = contributions.iloc[0].drop(['match_id', 'id', 'xT'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
@@ -863,13 +862,13 @@ def describe_pass_contributions_logistic(contributions, pass_features, feature_n
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)
             
-            # Get the feature value from shot_features
+            # Get the feature value from pass_features
             feature_value = pass_features[feature_name]
             
             # Get the feature description
             feature_value_description = describe_pass_single_feature(feature_name, feature_value)
             
-            # Add the feature's contribution to the xG description
+            # Add the feature's contribution to the xT description
             if original_contribution > 0:
                 impact = 'maximum positive contribution'
                 impact_text = "increased the xT."
@@ -916,7 +915,7 @@ feature_name_mapping_pass = { "start_distance_to_goal" : "start distance to goal
 def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
-    # Extract the contributions from the shot_contributions DataFrame
+    # Extract the contributions from the pass_contributions DataFrame
     contributions = feature_contrib_df.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
@@ -932,9 +931,6 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
         original_contribution = contributions[feature]
 
         if original_contribution >= 0.05 or original_contribution <= -0.05:
-        
-            # Remove "_contribution" suffix to match feature names in shot_features
-            #feature_name = feature.replace('_contribution', '')
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)
@@ -945,7 +941,7 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
             # Get the feature description
             feature_value_description = describe_pass_single_feature(feature, feature_value)
             
-            # Add the feature's contribution to the xG description
+            # Add the feature's contribution to the xT description
             if original_contribution > 0:
                 impact = 'maximum positive contribution'
                 impact_text = "increased the xT."
@@ -965,10 +961,11 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
 
     return text
 
+#contribution feature of xNN model
 def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
-    # Extract the contributions from the shot_contributions DataFrame
+    # Extract the contributions from the pass_contributions
     contributions = contributions_xNN.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
@@ -994,7 +991,7 @@ def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_na
             # Get the feature description
             feature_value_description = describe_pass_single_feature(feature, feature_value)
             
-            # Add the feature's contribution to the xG description
+            # Add the feature's contribution to the xT description
             if original_contribution > 0:
                 impact = 'maximum positive contribution'
                 impact_text = "increased the xT."

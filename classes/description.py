@@ -423,6 +423,7 @@ class ShotDescription(Description):
         return [{"role": "user", "content": prompt}]
 
 
+#pass description for logistic model
 class PassDescription_logistic(Description):
 
         output_token_limit = 500
@@ -529,7 +530,7 @@ class PassDescription_logistic(Description):
             return [{"role": "user", "content": prompt}]   
 
 
- #class description for xgboost
+ #class description of features for xNN
 class PassDescription_xNN(Description):
 
         output_token_limit = 500
@@ -633,7 +634,7 @@ class PassDescription_xNN(Description):
                 )
             return [{"role": "user", "content": prompt}]
 
-### description class for xGBoost
+### pass descriptions for xGBoost
 class PassDescription_xgboost(Description):
 
         output_token_limit = 500
