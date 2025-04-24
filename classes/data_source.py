@@ -9,7 +9,8 @@ import datetime
 from scipy.stats import zscore
 import os
 from statsmodels.api import load
-
+import torch
+import joblib
 
 from itertools import accumulate
 from pathlib import Path
@@ -823,29 +824,39 @@ class Passes(Data):
     def __init__(self,competition,match_id):
         self.match_id = match_id
         self.df_pass,self.df_tracking = self.get_data(match_id)
-        self.xT_Model = self.load_model(competition,show_summary=False)
+        
+        #initialzing for logistic mdoel
+        self.xT_Model = self.load_model_logistic(competition,show_summary=False)
         self.parameters = self.read_model_params(competition)
-        self.df_contributions = self.weight_contributions()
+        self.df_contributions = self.weight_contributions_logistic()
+        
+        #initializing for xg_boost model
+        drop_cols = ['possession_xG_target','speed_difference', 'h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        self.pass_df_xgboost = self.df_pass.drop(columns=[col for col in drop_cols if col in self.df_pass.columns])
+        xGB_model = self.load_xgboost_model(competition)
+        self.feature_contrib_df = self.get_feature_contributions(self.pass_df_xgboost,xGB_model)
+
+        #initializing for xNN model
+        drop_cols_xNN = ['possession_xG_target','speed_difference','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        self.pass_df_xNN = self.df_pass.drop(columns=[col for col in drop_cols_xNN if col in self.df_pass.columns])
+        self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition)
         self.tree, self.leaf_models = self.load_mimic_models(competition)
         self.df_contributions_mimic = self.weight_contributions_mimic()
 
 
     def get_data(self, match_id=None):
-        self.df_pass = pd.read_csv("data/df_passes.csv")
-        self.df_tracking = pd.read_csv("data/tracking_data.csv")
-        #print("Before filtering:", self.df_pass.shape)
+        self.df_pass = pd.read_csv("data/features_2022_2023_final.csv")
+        self.df_tracking = pd.read_parquet("data/tracking_2022_2023.parquet")
 
 
         if match_id is not None:
             match_id = int(match_id)
             self.df_pass["match_id"] = self.df_pass["match_id"].astype(int)
-            #print("After filtering:", self.df_pass.shape)
             self.df_pass = self.df_pass[self.df_pass["match_id"] == match_id].reset_index(drop=True)
 
         return self.df_pass,self.df_tracking
     
 
-    
     def read_model_params(self, competition):
         competitions_dict_prams = {"Allsevenskan 2022": "data/params_logistic.csv",
     "Allsevenskan 2023": "data/params_logistic.csv"}
@@ -868,10 +879,109 @@ class Passes(Data):
             return None
         except Exception as e:
             st.error(f"Error reading parameter file: {e}")
+            return 
+    
+
+    def read_position_model_params(self, competition):
+        competitions_dict_prams = {"Allsevenskan 2022": "data/position_model_params.csv",
+    "Allsevenskan 2023": "data/position_model_params.csv"}
+
+        file_path = competitions_dict_prams.get(competition)
+
+        if not file_path:
+            st.error("Parameter file not found for the selected competition.")
+            return None
+        try:
+            parameters = pd.read_csv(file_path)
+            parameters = parameters.rename(columns={
+            'beta_coeff': 'Parameter',
+            'value': 'Value'
+        })
+            return parameters
+
+        except FileNotFoundError:
+            st.error(f"File not found: {file_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error reading parameter file: {e}")
+            return None
+        
+
+    def read_speed_model_params(self, competition):
+        competitions_dict_prams = {"Allsevenskan 2022": "data/speed_model_params.csv",
+    "Allsevenskan 2023": "data/speed_model_params.csv"}
+
+        file_path = competitions_dict_prams.get(competition)
+
+        if not file_path:
+            st.error("Parameter file not found for the selected competition.")
+            return None
+        try:
+            parameters = pd.read_csv(file_path)
+            parameters = parameters.rename(columns={
+            'beta_coeff': 'Parameter',
+            'value': 'Value'
+        })
+            return parameters
+
+        except FileNotFoundError:
+            st.error(f"File not found: {file_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error reading parameter file: {e}")
+            return None
+        
+    
+    def read_pressure_model_params(self, competition):
+        competitions_dict_prams = {"Allsevenskan 2022": "data/pressure_model_params.csv",
+    "Allsevenskan 2023": "data/pressure_model_params.csv"}
+
+        file_path = competitions_dict_prams.get(competition)
+
+        if not file_path:
+            st.error("Parameter file not found for the selected competition.")
+            return None
+        try:
+            parameters = pd.read_csv(file_path)
+            parameters = parameters.rename(columns={
+            'beta_coeff': 'Parameter',
+            'value': 'Value'
+        })
+            return parameters
+
+        except FileNotFoundError:
+            st.error(f"File not found: {file_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error reading parameter file: {e}")
+            return None
+        
+    def read_event_model_params(self, competition):
+        competitions_dict_prams = {"Allsevenskan 2022": "data/event_model_params.csv",
+    "Allsevenskan 2023": "data/event_model_params.csv"}
+
+        file_path = competitions_dict_prams.get(competition)
+
+        if not file_path:
+            st.error("Parameter file not found for the selected competition.")
+            return None
+        try:
+            parameters = pd.read_csv(file_path)
+            parameters = parameters.rename(columns={
+            'beta_coeff': 'Parameter',
+            'value': 'Value'
+        })
+            return parameters
+
+        except FileNotFoundError:
+            st.error(f"File not found: {file_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error reading parameter file: {e}")
             return None
 
 
-    def weight_contributions(self):
+    def weight_contributions_logistic(self):
         df_pass = self.df_pass # Work with a copy to avoid altering the original dataframe
         parameters = self.parameters
         self.intercept = parameters[parameters['Parameter'] == 'Intercept']['Value'].values[0]
@@ -916,7 +1026,7 @@ class Passes(Data):
     
 
     @staticmethod
-    def load_model(competition, show_summary=False):
+    def load_model_logistic(competition, show_summary=False):
 
         competitions_dict = {
             "Allsevenskan 2022": "data/logistic_model_joblib.sav",
@@ -1149,9 +1259,234 @@ class Passes(Data):
 
         
     def load_xgboost_model(competition):
+    
+    @staticmethod
+    def load_pressure_model(competition, show_summary=False):
+
         competitions_dict = {
-            "Allsevenskan 2022": "data/XGBoost_model.sav",
-            "Allsevenskan 2023": "data/XGBoost_model.sav"
+            "Allsevenskan 2022": "data/pressure_based_model.sav",
+            "Allsevenskan 2023": "data/pressure_based_model.sav"
+        }
+
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            if show_summary:
+                with st.expander(f"Model Summary for h1 : Pressure based model {competition}"):
+                    st.text(model.summary().as_text())
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None   
+        
+    
+    @staticmethod
+    def load_speed_model(competition, show_summary=False):
+
+        competitions_dict = {
+            "Allsevenskan 2022": "data/speed_based_model.sav",
+            "Allsevenskan 2023": "data/speed_based_model.sav"
+        }
+
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            if show_summary:
+                with st.expander(f"Model Summary for h2 : Speed based model {competition}"):
+                    st.text(model.summary().as_text())
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None   
+        
+    @staticmethod
+    def load_position_model(competition, show_summary=False):
+
+        competitions_dict = {
+            "Allsevenskan 2022": "data/position_based_model.sav",
+            "Allsevenskan 2023": "data/position_based_model.sav"
+        }
+
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            if show_summary:
+                with st.expander(f"Model Summary for h3 : Position based model {competition}"):
+                    st.text(model.summary().as_text())
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None  
+        
+
+    @staticmethod
+    def load_event_model(competition, show_summary=False):
+
+        competitions_dict = {
+            "Allsevenskan 2022": "data/event_based_model.sav",
+            "Allsevenskan 2023": "data/event_based_model.sav"
+        }
+
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            if show_summary:
+                with st.expander(f"Model Summary for h4 : Event based model {competition}"):
+                    st.text(model.summary().as_text())
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None   
+
+
+    def load_xNN(self,competition):
+        from utils.utils import SimplerNet
+        competitions_dict = {
+            "Allsevenskan 2022": "data/simplernet_full_model.pth",
+            "Allsevenskan 2023": "data/simplernet_full_model.pth"
+        }
+
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            import torch.serialization
+            torch.serialization.add_safe_globals({'SimplerNet': SimplerNet})
+            model = torch.load(saved_model_path,weights_only=False)
+            model.eval()
+            return model
+        
+        except Exception as e:
+            st.error(f"Error loading xNN model: {e}")
+            return None  
+
+    def load_scaler(self):
+        try:
+            scaler = joblib.load("data/scaler.pkl")
+            return scaler
+        except Exception as e:
+            st.error(f"Error loading scaler: {e}")
+            return None
+        
+
+
+    def get_feature_contributions_xNN(self,pass_df_xNN,competition):
+        # Load model and scaler
+        model = self.load_xNN(competition)
+        scaler = self.load_scaler()
+        if model is None or scaler is None:
+            return None
+
+        # Prepare data
+        X_h = pass_df_xNN[['h1', 'h2', 'h3', 'h4']]
+        X_scaled = scaler.transform(X_h)
+        X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
+
+        # Predict xT
+        with torch.no_grad():
+            logits = model(X_tensor)
+            xT_probs = torch.sigmoid(logits).numpy().flatten()
+
+        # SHAP explanation
+        def model_predict(x_np):
+            x_tensor = torch.tensor(x_np, dtype=torch.float32)
+            with torch.no_grad():
+                return model(x_tensor).numpy()
+
+        # Use SHAP with the scaled input but keep original feature names
+        explainer = shap.Explainer(model_predict, X_scaled, feature_names=X_h.columns.tolist())
+        shap_vals = explainer(X_scaled)
+
+        # SHAP array and feature names
+        shap_array = shap_vals.values  # shape: (n_samples, n_h_features)
+        h_names = X_h.columns.tolist()
+
+        # Load logistic coefficients from multiple sources
+        logistic_dfs = [
+            self.read_pressure_model_params(competition),
+            self.read_speed_model_params(competition),
+            self.read_position_model_params(competition),
+            self.read_event_model_params(competition)
+        ]
+
+        logistic_coeffs = {}
+        for i, df in enumerate(logistic_dfs):
+            h_key = f"h{i+1}"
+            if df is not None:
+                feature_col, coef_col = df.columns[:2]
+                logistic_coeffs[h_key] = dict(zip(df[feature_col], df[coef_col]))
+
+        # Aggregate base feature contributions
+        all_base_feats = set()
+        for coeff_dict in logistic_coeffs.values():
+            all_base_feats.update(coeff_dict.keys())
+        all_base_feats = sorted(list(all_base_feats))
+        base_contrib_matrix = pd.DataFrame(0, index=pass_df_xNN.index, columns=all_base_feats)
+
+        for i, h in enumerate(h_names):
+            if h not in logistic_coeffs:
+                continue
+            h_shap_col = shap_array[:, i]
+            coeffs = logistic_coeffs[h] 
+            
+            for feat, coef in coeffs.items():
+                base_contrib_matrix[feat] += coef * h_shap_col
+
+        # Add IDs and xT prediction to result
+        base_contrib_matrix.insert(0, "xT_predicted", xT_probs)
+        base_contrib_matrix.insert(0, "match_id", pass_df_xNN["match_id"].values)
+        base_contrib_matrix.insert(0, "id", pass_df_xNN["id"].values)
+
+        return base_contrib_matrix
+
+
+    def load_xgboost_model(self,competition):
+        competitions_dict = {
+            "Allsevenskan 2022": "data/XGBoost_Model_joblib.sav",
+            "Allsevenskan 2023": "data/XGBoost_Model_joblib.sav"
         }
 
         saved_model_path = competitions_dict.get(competition)
@@ -1168,37 +1503,35 @@ class Passes(Data):
             st.error(f"Model file not found at: {saved_model_path}")
             return None
         
-        except Exception as e
+        except Exception as e:
             st.error(f"Error loading XGBoost model: {e}")
             return None  
 
     
-
-
-    def get_feature_contributions(df_passes, model):
+    def get_feature_contributions(self,pass_df_xgboost,xGB_model):
     
 
         # 1. Define features to be used for prediction (exclude non-feature columns)
-        feature_cols = [col for col in df_passes.columns if col not in ['id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
-       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season', 'possession_xG_target','pass_recipient_id']]
-
+        feature_cols = [col for col in pass_df_xgboost.columns if col not in ['id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
+       'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y', 'pressure level passer', 'forward pass', 'backward pass', 'lateral pass', 'season','pass_recipient_id','passer_name','receiver_name','team_name','possession_xg','possession_goal']]
+        
         # 2. Extract X (feature matrix)
-        X = df_passes[feature_cols]
+        X = pass_df_xgboost[feature_cols]
 
         # 3. Predict xT probabilities using the classifier
-        xT_probabilities = model.predict_proba(X)[:, 1]
+        xT_probabilities = xGB_model.predict_proba(X)[:,1]
 
         # 4. Compute SHAP values
-        explainer = shap.Explainer(model, X)
+        explainer = shap.Explainer(xGB_model, X)
         shap_values = explainer(X)
 
         # 5. Build SHAP DataFrame
-        shap_df = pd.DataFrame(shap_values.values, columns=feature_cols, index=df_passes.index)
+        shap_df = pd.DataFrame(shap_values.values, columns=feature_cols, index=pass_df_xgboost.index)
 
         # 6. Add id, match_id, and xT prediction at the beginning
         shap_df.insert(0, 'xT_predicted', xT_probabilities)
-        shap_df.insert(0, 'match_id', df_passes['match_id'].values)
-        shap_df.insert(0, 'id', df_passes['id'].values)
+        shap_df.insert(0, 'match_id', pass_df_xgboost['match_id'].values)
+        shap_df.insert(0, 'id', pass_df_xgboost['id'].values)
         
         # 7. Reorder columns: id, match_id, all SHAP features, xT_predicted
         ordered_cols = ['id', 'match_id'] + feature_cols + ['xT_predicted']
