@@ -547,7 +547,7 @@ def describe_shot_contributions(shot_contributions, shot_features, feature_name_
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.1 or original_contribution <= -0.1:
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
         
             # Remove "_contribution" suffix to match feature names in shot_features
             feature_name = feature.replace('_contribution', '')
@@ -916,11 +916,11 @@ feature_name_mapping_pass = { "start_distance_to_goal" : "start distance to goal
 }
 
 # Contribution function for xgboost
-def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
+def describe_pass_contributions_xgboost(contributions, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
     # Extract the contributions from the shot_contributions DataFrame
-    contributions = feature_contrib_df.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
+    contributions = contributions.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
     sorted_contributions = contributions.abs().sort_values(ascending=False)
