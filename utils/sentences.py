@@ -756,11 +756,11 @@ def describe_pass_single_feature(feature_name, feature_value):
 
     if feature_name == "pressure_on_passer":
         if feature_value < 0.3617676262544192:
-            return "the pressure on passer has low value"
+            return "the pressure on passer has low value for that range."
         elif feature_value < 0.6900539491099027:
-            return "the pressure on passer has moderate value"
+            return "the pressure on passer has moderate value for that range."
         else:
-            return "the pressure on passer has high value"
+            return "the pressure on passer has high value for that range."
 
     if feature_name == "opponents_nearby":
         if feature_value == 0:

@@ -519,13 +519,13 @@ class PassDescription_logistic(Description):
 
         def get_prompt_messages(self):
             prompt = (
-                "You are a football commentator. You should write in an exciting and engaging way about a shot"
-                f"You should giva a four sentence summary of the shot taken by the player. "
-                "The first sentence should say whether it was a good chance or not, state the expected goals value and also state if it was a goal. "
-                "The second and third sentences should describe the most important factors that contributed to the quality of the chance. "
-                "If it was a good chance these two sentences chould explain what contributing factors made the shot dangerous. "
-                "If it wasn't particularly good chance then these two sentences chould explain why it wasn't a good chance. "
-                "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
+                "You are a football commentator. You should write in an exciting and engaging way about the features contributing for pass to be a shot and is it a safe or dangerous pass."
+                f"You should giva a four sentence summary of the pass taken by the player. "
+                "The first sentence should say whether it was a good chance or not, state the expected threat value and also state the probability of expected goal. "
+                "The second and third sentences should describe the most important factors that contributed to the pass to be safe or dangerous. "
+                "If it was a good chance these two sentences chould explain what contributing factors made the pass dangerous. "
+                "If it wasn't particularly good chance then these two sentences chould explain why it was a safe pass. "
+                "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when initiating the pass."
                 )
             return [{"role": "user", "content": prompt}]   
 

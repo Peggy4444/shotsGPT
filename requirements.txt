@@ -17,3 +17,4 @@ plotly==5.24.1
 xgboost== 3.0.0
 shap == 0.47.1
 torch
+toml

@@ -11,6 +11,7 @@ import os
 from statsmodels.api import load
 import torch
 import joblib
+import toml
 
 from itertools import accumulate
 from pathlib import Path
@@ -990,35 +991,34 @@ class Passes(Data):
             param_value = row['Value']
             contribution_col = f"{param_name}_contribution"
 
-            # Calculate the contribution
+             # Calculate the contribution
             df_pass[contribution_col] = df_pass[param_name] * param_value
 
-            # Mean-center the contributions
+             # Mean-center the contributions
             df_pass[contribution_col] -= df_pass[contribution_col].mean()
 
-        # Prepare contributions dataframe
+         # Prepare contributions dataframe
         df_contribution = df_pass[['id', 'match_id'] + [col for col in df_pass.columns if 'contribution' in col]]
 
-        # Calculate xG for each shot individually
+         # Calculate xG for each shot individually
         xG_values = []
         for _, shot in df_pass.iterrows():
             linear_combination = self.intercept
 
-            # Add contributions from all parameters for this shot
+            # Add contributions from all parameters for this pass
             for _, param in self.parameters.iterrows():
                 param_name = param['Parameter']
                 param_value = param['Value']
                 linear_combination += shot[param_name] * param_value
-            # Apply logistic function to calculate xG
+             # Apply logistic function to calculate xG
             xG = 1 / (1 + np.exp(-linear_combination))
             xG_values.append(xG)
 
-        # Add xG values to df_shots and df_contribution
+         # Add xG values to df_shots and df_contribution
         df_pass['xT'] = xG_values
         df_contribution['xT'] = xG_values
 
         return df_contribution
-    
 
     @staticmethod
     def load_model_logistic(competition, show_summary=False):

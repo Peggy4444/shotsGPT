@@ -143,7 +143,7 @@ with tab1:
 
     descriptions = PassDescription_logistic(pass_data,df_contributions ,pass_id, selected_competition)
 
-
+    summaries = descriptions.stream_gpt()
   
 with tab2:
     st.header("xNN")
