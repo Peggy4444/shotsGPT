@@ -345,11 +345,136 @@ def describe_shot_single_feature(feature_name, feature_value):
     return f"No description available for {feature_name}."
 
 
+feature_name_mapping = {
+    'vertical_distance_to_center_contribution': 'squared distance to center',
+    'euclidean_distance_to_goal_contribution': 'euclidean distance to goal',
+    'nearby_opponents_in_3_meters_contribution': 'nearby opponents within 3 meters',
+    'opponents_in_triangle_contribution': 'number of opponents in triangle formed by shot location and goalposts',
+    'goalkeeper_distance_to_goal_contribution': 'distance to goal of the goalkeeper',
+    'header_contribution': 'header',
+    'distance_to_nearest_opponent_contribution': 'distance to nearest opponent',
+    'angle_to_goalkeeper_contribution': 'angle to goalkeepr',
+    'shot_with_left_foot_contribution': 'shot taken with left foot',
+    'shot_after_throw_in_contribution': 'shot after throw in',
+    'shot_after_corner_contribution': 'shot after corner',
+    'shot_after_free_kick_contribution': 'shot after free kick',
+    'shot_during_regular_play_contribution': 'shot during regular play'
+
+}
+def describe_shot_contributions(shot_contributions, shot_features, feature_name_mapping=feature_name_mapping):
+    text = "The contributions of the features to the xG of the shot, sorted by their magnitude from largest to smallest, are as follows:\n"
+    
+    # Extract the contributions from the shot_contributions DataFrame
+    contributions = shot_contributions.iloc[0].drop(['match_id', 'id', 'xG'])  # Drop irrelevant columns
+    
+    # Sort the contributions by their absolute value (magnitude) in descending order
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+    
+    # Get the top 4 contributions
+    #top_contributions = sorted_contributions.head(4)
+    top_contributions = sorted_contributions
+    
+    # Loop through the top contributions to generate descriptions
+    for idx, (feature, contribution) in enumerate(top_contributions.items()):
+
+        # Get the original sign of the contribution
+        original_contribution = contributions[feature]
+
+        if original_contribution >= 0.1 or original_contribution <= -0.1:
+        
+            # Remove "_contribution" suffix to match feature names in shot_features
+            feature_name = feature.replace('_contribution', '')
+            
+            # Use feature_name_mapping to get the display name for the feature (if available)
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            
+            # Get the feature value from shot_features
+            feature_value = shot_features[feature_name]
+            
+            # Get the feature description
+            feature_value_description = describe_shot_single_feature(feature_name, feature_value)
+            
+            # Add the feature's contribution to the xG description
+            if original_contribution > 0:
+                impact = 'maximum positive contribution'
+                impact_text = "increased the xG of the shot."
+            elif original_contribution < 0:
+                impact = 'maximum negative contribution'
+                impact_text = "reduced the xG of the shot."
+            else:
+                impact = 'no contribution'
+                impact_text = "had no impact on the xG of the shot."
+
+            # Use appropriate phrasing for the first feature and subsequent features
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description} This feature {impact_text}"
+        
+
+    return text
+
+def describe_shot_contributions1(shot_contributions, feature_name_mapping=feature_name_mapping, thresholds=None):
+    
+    # Default thresholds if none are provided
+    thresholds = thresholds or {
+        'very_large': 0.75,
+        'large': 0.50,
+        'moderate': 0.25,
+        'low': 0.00
+    }
+
+    # Initialize a list to store contributions that are not 'match_id', 'id', or 'xG'
+    valid_contributions = {}
+
+    # Loop through the columns to select valid ones
+    for feature, contribution in shot_contributions.iloc[0].items():
+        if feature not in ['match_id', 'id', 'xG']:  # Skip these columns
+            valid_contributions[feature] = contribution
+
+    # Convert to Series and sort by absolute values in descending order
+    sorted_contributions = (
+        pd.Series(valid_contributions)
+        .apply(lambda x: abs(x))
+        .sort_values(ascending=False)
+    )
+
+    # Loop through the sorted contributions and categorize them based on thresholds
+    for feature, contribution in sorted_contributions.items():
+        # Get the original sign of the contribution
+        original_contribution = valid_contributions[feature]
+
+        # Use the feature_name_mapping dictionary to get the display name for the feature
+        feature_display_name = feature_name_mapping.get(feature, feature)
+
+        # Determine the contribution level
+        if abs(contribution) > thresholds['very_large']:
+            level = 'very large'
+        elif abs(contribution) > thresholds['large']:
+            level = 'large'
+        elif abs(contribution) > thresholds['moderate']:
+            level = 'moderate'
+        else:
+            level = 'low'
+
+        # Distinguish between positive and negative contributions
+        if original_contribution > 0:
+            explanation = f"{feature_display_name} has a {level} positive contribution, which increased the xG of the shot"
+        elif original_contribution < 0:
+            explanation = f"{feature_display_name} has a {level} negative contribution, which reduced the xG of the shot"
+        else:
+            explanation = f"{feature_display_name} had no contribution to the xG of the shot"
+
+        # Add to the text
+        text += f"{explanation}\n"
+    
+    return text
+
+#thresholds for contribution features
 def read_pass_feature_thresholds(competition):
     competitions_dict_params = {
         "Allsevenskan 2022": "data/feature_description_passes.csv",
         "Allsevenskan 2023": "data/feature_description_passes.csv"
-        # You can add more pass-related competitions here in the future
     }
 
     file_path = competitions_dict_params.get(competition)
@@ -433,7 +558,6 @@ def read_pass_feature_thresholds_logistic(competition):
     competitions_dict_params = {
         "Allsevenskan 2022": "data/feature_description_passes.csv",
         "Allsevenskan 2023": "data/feature_description_passes.csv"
-        # You can add more pass-related competitions here in the future
     }
 
     file_path = competitions_dict_params.get(competition)
@@ -498,9 +622,12 @@ def describe_pass_features_logistic(features, competition):
     pressure = features['pressure_level_passer']
     
     if pressure == "Low Pressure":
-        if features['opponents_nearby'] < 2:
-            descriptions.append(f" There is {features['opponents_nearby']} nearby opponent within 6m, creating low pressure at the moment of the pass.")
-        else :
+       if features['opponents_nearby'] <= 2:
+        if features['opponents_nearby'] == 0:
+            descriptions.append(" There are no nearby opponents within 6m, creating low pressure at the moment of the pass.")
+        elif features['opponents_nearby'] == 1:
+            descriptions.append(" There is 1 nearby opponent within 6m, creating low pressure at the moment of the pass.")
+        else:
             descriptions.append(f" There are {features['opponents_nearby']} nearby opponents within 6m, creating low pressure at the moment of the pass.")
 
     elif pressure == "Middle Pressure":
@@ -512,6 +639,7 @@ def describe_pass_features_logistic(features, competition):
     return descriptions
 
 
+### pass features defination for all models
 feature_name_mapping = {
     'vertical_distance_to_center_contribution': 'squared distance to center',
     'euclidean_distance_to_goal_contribution': 'euclidean distance to goal',
@@ -648,7 +776,7 @@ def describe_pass_single_feature(feature_name, feature_value):
         elif feature_value < 24.36115859931905:
             return "the pass had moderate length"
         else:
-            return "the pass was long."
+            return "the pass was long"
 
     if feature_name == "start_angle_to_goal":
         if feature_value < 4.692139370656406:
@@ -757,11 +885,11 @@ def describe_pass_single_feature(feature_name, feature_value):
 
     if feature_name == "pressure_on_passer":
         if feature_value < 0.3617676262544192:
-            return "the pressure on passer has low value"
+            return "the pressure on passer has low value for that range."
         elif feature_value < 0.6900539491099027:
-            return "the pressure on passer has moderate value"
+            return "the pressure on passer has moderate value for that range."
         else:
-            return "the pressure on passer has high value"
+            return "the pressure on passer has high value for that range."
 
     if feature_name == "opponents_nearby":
         if feature_value == 0:
@@ -843,7 +971,7 @@ feature_name_mapping_logistic = { "start_distance_to_goal_contribution" : "start
 def describe_pass_contributions_logistic(contributions, pass_features, feature_name_mapping=feature_name_mapping_logistic):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
-    # Extract the contributions from the shot_contributions DataFrame
+    # Extract the contributions from the pass_contributions DataFrame
     contributions = contributions.iloc[0].drop(['match_id', 'id', 'xT'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
@@ -858,7 +986,7 @@ def describe_pass_contributions_logistic(contributions, pass_features, feature_n
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.05 or original_contribution <= -0.05:
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
         
             # Remove "_contribution" suffix to match feature names in shot_features
             feature_name = feature.replace('_contribution', '')
@@ -866,13 +994,13 @@ def describe_pass_contributions_logistic(contributions, pass_features, feature_n
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)
             
-            # Get the feature value from shot_features
+            # Get the feature value from pass_features
             feature_value = pass_features[feature_name]
             
             # Get the feature description
             feature_value_description = describe_pass_single_feature(feature_name, feature_value)
             
-            # Add the feature's contribution to the xG description
+            # Add the feature's contribution to the xT description
             if original_contribution > 0:
                 impact = 'maximum positive contribution'
                 impact_text = "increased the xT."
@@ -916,11 +1044,61 @@ feature_name_mapping_pass = { "start_distance_to_goal" : "start distance to goal
 }
 
 # Contribution function for xgboost
-def describe_pass_contributions_xgboost(contributions, pass_features, feature_name_mapping=feature_name_mapping_pass):
+def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
-    # Extract the contributions from the shot_contributions DataFrame
-    contributions = contributions.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
+    # Extract the contributions from the pass_contributions DataFrame
+    contributions = feature_contrib_df.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
+    
+    # Sort the contributions by their absolute value (magnitude) in descending order
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+    
+    # Get the top 4 contributions
+    top_contributions = sorted_contributions
+    
+    # Loop through the top contributions to generate descriptions
+    for idx, (feature,contribution) in enumerate(top_contributions.items()):
+        # Get the original sign of the contribution
+        original_contribution = contributions[feature]
+
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
+            
+            # Use feature_name_mapping to get the display name for the feature (if available)
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            
+            # Get the feature value from shot_features
+            feature_value = pass_features[feature]
+            
+            # Get the feature description
+            feature_value_description = describe_pass_single_feature(feature, feature_value)
+            
+            # Add the feature's contribution to the xT description
+            if original_contribution > 0:
+                impact = 'maximum positive contribution'
+                impact_text = "increased the xT."
+            elif original_contribution < 0:
+                impact = 'maximum negative contribution'
+                impact_text = "reduced the xT."
+            else:
+                impact = 'no contribution'
+                impact_text = "had no impact on the xT."
+                print(original_contribution)
+
+            # Use appropriate phrasing for the first feature and subsequent features
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+        
+
+    return text
+
+#contribution feature of xNN model
+def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
+    
+    # Extract the contributions from the pass_contributions
+    contributions = contributions_xNN.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
     sorted_contributions = contributions.abs().sort_values(ascending=False)
@@ -934,10 +1112,7 @@ def describe_pass_contributions_xgboost(contributions, pass_features, feature_na
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.05 or original_contribution <= -0.05:
-        
-            # Remove "_contribution" suffix to match feature names in shot_features
-            #feature_name = feature.replace('_contribution', '')
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)
@@ -948,7 +1123,7 @@ def describe_pass_contributions_xgboost(contributions, pass_features, feature_na
             # Get the feature description
             feature_value_description = describe_pass_single_feature(feature, feature_value)
             
-            # Add the feature's contribution to the xG description
+            # Add the feature's contribution to the xT description
             if original_contribution > 0:
                 impact = 'maximum positive contribution'
                 impact_text = "increased the xT."

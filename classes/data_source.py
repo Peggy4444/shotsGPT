@@ -823,16 +823,22 @@ class Passes(Data):
     def __init__(self,competition,match_id):
         self.match_id = match_id
         self.df_pass,self.df_tracking = self.get_data(match_id)
+        
+        #initialzing for logistic mdoel
         self.xT_Model = self.load_model_logistic(competition,show_summary=False)
         self.parameters = self.read_model_params(competition)
         self.df_contributions = self.weight_contributions_logistic()
         
-        drop_cols = ['speed_difference', 'possession_xG_target', 'h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        #initializing for xg_boost model
+        drop_cols = ['possession_xG_target','speed_difference', 'h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
         self.pass_df_xgboost = self.df_pass.drop(columns=[col for col in drop_cols if col in self.df_pass.columns])
-        
         xGB_model = self.load_xgboost_model(competition)
         self.feature_contrib_df = self.get_feature_contributions(self.pass_df_xgboost,xGB_model)
 
+        #initializing for xNN model
+        drop_cols_xNN = ['possession_xG_target','speed_difference','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        self.pass_df_xNN = self.df_pass.drop(columns=[col for col in drop_cols_xNN if col in self.df_pass.columns])
+        self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition)
 
     def get_data(self, match_id=None):
 
@@ -843,7 +849,6 @@ class Passes(Data):
         if match_id is not None:
             match_id = int(match_id)
             self.df_pass["match_id"] = self.df_pass["match_id"].astype(int)
-            #print("After filtering:", self.df_pass.shape)
             self.df_pass = self.df_pass[self.df_pass["match_id"] == match_id].reset_index(drop=True)
 
         return self.df_pass,self.df_tracking
@@ -987,35 +992,34 @@ class Passes(Data):
             param_value = row['Value']
             contribution_col = f"{param_name}_contribution"
 
-            # Calculate the contribution
+             # Calculate the contribution
             df_pass[contribution_col] = df_pass[param_name] * param_value
 
-            # Mean-center the contributions
+             # Mean-center the contributions
             df_pass[contribution_col] -= df_pass[contribution_col].mean()
 
-        # Prepare contributions dataframe
+         # Prepare contributions dataframe
         df_contribution = df_pass[['id', 'match_id'] + [col for col in df_pass.columns if 'contribution' in col]]
 
-        # Calculate xG for each shot individually
+         # Calculate xG for each shot individually
         xG_values = []
         for _, shot in df_pass.iterrows():
             linear_combination = self.intercept
 
-            # Add contributions from all parameters for this shot
+            # Add contributions from all parameters for this pass
             for _, param in self.parameters.iterrows():
                 param_name = param['Parameter']
                 param_value = param['Value']
                 linear_combination += shot[param_name] * param_value
-            # Apply logistic function to calculate xG
+             # Apply logistic function to calculate xG
             xG = 1 / (1 + np.exp(-linear_combination))
             xG_values.append(xG)
 
-        # Add xG values to df_shots and df_contribution
+         # Add xG values to df_shots and df_contribution
         df_pass['xT'] = xG_values
         df_contribution['xT'] = xG_values
 
         return df_contribution
-    
 
     @staticmethod
     def load_model_logistic(competition, show_summary=False):
@@ -1163,7 +1167,8 @@ class Passes(Data):
         except Exception as e:
             st.error(f"Error loading model: {e}")
             return None   
-        
+
+
     def load_xNN(self,competition):
         from utils.utils import SimplerNet
         competitions_dict = {
@@ -1198,7 +1203,7 @@ class Passes(Data):
         
 
 
-    def get_feature_contributions_xNN(self, competition):
+    def get_feature_contributions_xNN(self,pass_df_xNN,competition):
         # Load model and scaler
         model = self.load_xNN(competition)
         scaler = self.load_scaler()
@@ -1206,8 +1211,7 @@ class Passes(Data):
             return None
 
         # Prepare data
-        df_pass = self.df_pass.copy()
-        X_h = df_pass[['h1', 'h2', 'h3', 'h4']]
+        X_h = pass_df_xNN[['h1', 'h2', 'h3', 'h4']]
         X_scaled = scaler.transform(X_h)
         X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
 
@@ -1250,7 +1254,7 @@ class Passes(Data):
         for coeff_dict in logistic_coeffs.values():
             all_base_feats.update(coeff_dict.keys())
         all_base_feats = sorted(list(all_base_feats))
-        base_contrib_matrix = pd.DataFrame(0, index=df_pass.index, columns=all_base_feats)
+        base_contrib_matrix = pd.DataFrame(0, index=pass_df_xNN.index, columns=all_base_feats)
 
         for i, h in enumerate(h_names):
             if h not in logistic_coeffs:
@@ -1263,8 +1267,8 @@ class Passes(Data):
 
         # Add IDs and xT prediction to result
         base_contrib_matrix.insert(0, "xT_predicted", xT_probs)
-        base_contrib_matrix.insert(0, "match_id", df_pass["match_id"].values)
-        base_contrib_matrix.insert(0, "id", df_pass["id"].values)
+        base_contrib_matrix.insert(0, "match_id", pass_df_xNN["match_id"].values)
+        base_contrib_matrix.insert(0, "id", pass_df_xNN["id"].values)
 
         return base_contrib_matrix
 
