@@ -37,8 +37,9 @@ from utils.utils import normalize_text,SimplerNet
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
 from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
+from classes.chat import Chat
 
 
 # Function to load and inject custom CSS from an external file
@@ -143,6 +144,22 @@ with tab1:
 
     descriptions = PassDescription_logistic(pass_data,df_contributions ,pass_id, selected_competition)
 
+    to_hash = (selected_match_id, pass_id)
+
+
+    summaries = descriptions.stream_gpt()
+
+    chat = create_chat(to_hash, Chat)
+
+    #chat = create_chat(tuple(shots_df['id'].unique()), Chat)
+    if summaries:
+        chat.add_message(summaries)
+
+
+
+    chat.state = "default"
+    chat.display_messages()
+
 
   
 with tab2:
@@ -157,8 +174,10 @@ with tab2:
    
     st.write(df_passes_xnn.astype(str))
 
+
     st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from xNN model</h3>", unsafe_allow_html=True)
     df_xnn_contrib = pass_data.contributions_xNN
+
     st.write(df_xnn_contrib.astype(str))
 
     excluded_columns = ['xT_predicted','id', 'match_id']
@@ -167,7 +186,7 @@ with tab2:
    # Build and show plot
     st.markdown("<h3 style='font-size:18px; color:black;'>Xnn contribution plot</h3>", unsafe_allow_html=True)
     visuals_Xnn = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
-    visuals_Xnn.add_passes(df_passes_xnn,metrics,selected_pass_id=selected_pass_id)
+    visuals_Xnn.add_passes(df_passes_xnn,metrics)
     visuals_Xnn.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
     visuals_Xnn.show()
 
