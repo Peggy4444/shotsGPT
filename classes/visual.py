@@ -863,7 +863,7 @@ class PassContributionPlot_XGBoost(DistributionPlot):
 
 
 
-    def add_passes(self, pass_df_xgboost, metrics, selected_pass_id):
+    def add_passes(self, pass_df_xgboost,feature_contrib_df, metrics, selected_pass_id):
         hover_texts = []
 
         for _, row in self.feature_contrib_df.iterrows():
