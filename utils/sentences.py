@@ -986,7 +986,7 @@ def describe_pass_contributions_logistic(contributions, pass_features, feature_n
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.01 or original_contribution <= -0.01:
+        if original_contribution >= 0.1 or original_contribution <= -0.1:
         
             # Remove "_contribution" suffix to match feature names in shot_features
             feature_name = feature.replace('_contribution', '')
@@ -1061,7 +1061,7 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.01 or original_contribution <= -0.01:
+        if original_contribution >= 0.1 or original_contribution <= -0.1:
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)

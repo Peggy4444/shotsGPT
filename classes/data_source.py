@@ -745,7 +745,7 @@ class Shots(Data):
             df_shots[contribution_col] = df_shots[param_name] * param_value
 
             # Mean-center the contributions
-            df_shots[contribution_col] -= df_shots[contribution_col].mean()
+            #df_shots[contribution_col] -= df_shots[contribution_col].mean()
 
         # Prepare contributions dataframe
         df_contribution = df_shots[['id', 'match_id'] + [col for col in df_shots.columns if 'contribution' in col]]
@@ -819,7 +819,7 @@ class Shots(Data):
         return self.data_point_class(id=id,ser_metrics=ser_metrics)
 
 
-class Passes(Data):
+class Passes(Data): 
     def __init__(self,competition,match_id):
         self.match_id = match_id
         self.df_pass,self.df_tracking = self.get_data(match_id)
@@ -830,20 +830,19 @@ class Passes(Data):
         self.df_contributions = self.weight_contributions_logistic()
         
         #initializing for xg_boost model
-        drop_cols = ['possession_xG_target','speed_difference', 'h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        drop_cols = ['possession_xG_target','speed_difference', 'end_distance_to_sideline_contribution','h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
         self.pass_df_xgboost = self.df_pass.drop(columns=[col for col in drop_cols if col in self.df_pass.columns])
         xGB_model = self.load_xgboost_model(competition)
         self.feature_contrib_df = self.get_feature_contributions(self.pass_df_xgboost,xGB_model)
 
         #initializing for xNN model
-        drop_cols_xNN = ['possession_xG_target','speed_difference','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        drop_cols_xNN = ['possession_xG_target','speed_difference','end_distance_to_sideline_contribution','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
         self.pass_df_xNN = self.df_pass.drop(columns=[col for col in drop_cols_xNN if col in self.df_pass.columns])
         self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition)
 
     def get_data(self, match_id=None):
-
-        self.df_pass = pd.read_csv("data/features_2022_2023_final.csv")
-        self.df_tracking = pd.read_parquet("data/tracking_2022_2023.parquet")
+        self.df_pass = pd.read_csv("data/df_passes.csv")
+        self.df_tracking = pd.read_csv("data/tracking.csv")
 
 
         if match_id is not None:
@@ -1202,7 +1201,6 @@ class Passes(Data):
             return None
         
 
-
     def get_feature_contributions_xNN(self,pass_df_xNN,competition):
         # Load model and scaler
         model = self.load_xNN(competition)
@@ -1263,7 +1261,7 @@ class Passes(Data):
             coeffs = logistic_coeffs[h] 
             
             for feat, coef in coeffs.items():
-                base_contrib_matrix[feat] += coef * h_shap_col
+                base_contrib_matrix[feat] = coef * h_shap_col
 
         # Add IDs and xT prediction to result
         base_contrib_matrix.insert(0, "xT_predicted", xT_probs)
@@ -1272,7 +1270,7 @@ class Passes(Data):
 
         return base_contrib_matrix
 
-
+    
     def load_xgboost_model(self,competition):
         competitions_dict = {
             "Allsevenskan 2022": "data/XGBoost_Model_joblib.sav",
@@ -1296,6 +1294,7 @@ class Passes(Data):
         except Exception as e:
             st.error(f"Error loading XGBoost model: {e}")
             return None  
+
 
     
     def get_feature_contributions(self,pass_df_xgboost,xGB_model):
@@ -1327,7 +1326,7 @@ class Passes(Data):
         ordered_cols = ['id', 'match_id'] + feature_cols + ['xT_predicted']
         shap_df = shap_df[ordered_cols]
 
-        return shap_df
+        return shap_df 
     
     
 
