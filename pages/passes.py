@@ -133,29 +133,21 @@ with tab1:
     xt_value = df_contributions[df_contributions['id'] == pass_id]['xT']
     xt_value = xt_value.iloc[0] if not xt_value.empty else "N/A"
 
+    descriptions = PassDescription_logistic(pass_data,df_contributions ,pass_id, selected_competition)
+
+    to_hash = (selected_match_id, pass_id)
+    summaries = descriptions.stream_gpt()
+    chat = create_chat(to_hash, Chat)
+
     st.markdown(
     f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
     unsafe_allow_html=True
     )
-
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
-
-    descriptions = PassDescription_logistic(pass_data,df_contributions ,pass_id, selected_competition)
-
-    to_hash = (selected_match_id, pass_id)
-
-
-    summaries = descriptions.stream_gpt()
-
-    chat = create_chat(to_hash, Chat)
-
-    #chat = create_chat(tuple(shots_df['id'].unique()), Chat)
     if summaries:
         chat.add_message(summaries)
-
-
 
     chat.state = "default"
     chat.display_messages()
@@ -192,19 +184,22 @@ with tab2:
 
     xt_value = df_xnn_contrib[df_xnn_contrib['id'] == pass_id]['xT_predicted']
     xt_value = xt_value.iloc[0] if not xt_value.empty else "N/A"
-    
+ 
+    descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,pass_id, selected_competition)
+
+    to_hash = (selected_match_id, pass_id)
+    summaries = descriptions.stream_gpt()
+    chat = create_chat(to_hash, Chat)
+
     st.markdown(
     f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
     unsafe_allow_html=True
     )
-
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
-
-    descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,pass_id, selected_competition)
-
-
+    
+    chat.display_messages()
  
 with tab3:
     st.header("xgBoost")

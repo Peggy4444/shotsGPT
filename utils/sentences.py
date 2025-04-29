@@ -75,27 +75,27 @@ def describe_xT_pass(xT,xG):
     if xG != 0:
         if xT <= 0.024800:
             if xG < 0.066100:
-                description = f" It had low xT and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
             else:
-                description = f" It had low xT probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
         elif xT > 0.024800 and xT <= 0.066100:
             if xG < 0.066100:
-                description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
             else:
-                description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
         elif xT > 0.066100 and xT <=  0.150000:
             if xG < 0.066100:
-                description = f" It had high xT and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
             else:
-                description = f" It had high xT and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
         else:
             if xG < 0.066100:
-                description = f" It had excellent xT and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
             else:
-                description = f" It had excellent xT and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
             
     else:
-        description = f" It did not lead to a shot, opportunities to score goal is less and was a safe pass."
+        description = f" The xT value is {xT} and it did not lead to a shot, opportunities to score goal is less and was a safe pass."
     return description
 
 
