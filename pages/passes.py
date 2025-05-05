@@ -135,7 +135,7 @@ with tab1:
 
     descriptions = PassDescription_logistic(pass_data,df_contributions ,pass_id, selected_competition)
 
-    to_hash = (selected_match_id, pass_id)
+    to_hash = ("logistic",selected_match_id, pass_id)
     summaries = descriptions.stream_gpt()
     chat = create_chat(to_hash, Chat)
 
@@ -187,7 +187,7 @@ with tab2:
  
     descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,pass_id, selected_competition)
 
-    to_hash = (selected_match_id, pass_id)
+    to_hash = ("xNN",selected_match_id, pass_id)
     summaries = descriptions.stream_gpt()
     chat = create_chat(to_hash, Chat)
 
@@ -199,6 +199,9 @@ with tab2:
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
     
+    if summaries:
+        chat.add_message(summaries)
+
     chat.display_messages()
  
 with tab3:
