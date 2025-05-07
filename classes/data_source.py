@@ -777,12 +777,6 @@ class Shots(Data):
 
         return df_contribution
     
-
-    
-    
-
-
-
     @staticmethod
     def load_model(competition):
 
@@ -837,13 +831,13 @@ class Passes(Data):
         self.df_contributions = self.weight_contributions_logistic()
         
         #initializing for xg_boost model
-        drop_cols = ['possession_xG_target','speed_difference', 'end_distance_to_sideline_contribution','h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        drop_cols = ['possession_xG_target','speed_difference', 'end_distance_to_sideline_contribution','h1', 'h2', 'h3', 'h4','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution','end_angle_to_goal_contribution', 'pressure_on_passer_contribution','xT']
         self.pass_df_xgboost = self.df_pass.drop(columns=[col for col in drop_cols if col in self.df_pass.columns])
         xGB_model = self.load_xgboost_model(competition)
         self.feature_contrib_df = self.get_feature_contributions(self.pass_df_xgboost,xGB_model)
 
         #initializing for xNN model
-        drop_cols_xNN = ['possession_xG_target','speed_difference','end_distance_to_sideline_contribution','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        drop_cols_xNN = ['possession_xG_target','speed_difference', 'end_distance_to_sideline_contribution','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution','end_angle_to_goal_contribution', 'pressure_on_passer_contribution','xT']
         self.pass_df_xNN = self.df_pass.drop(columns=[col for col in drop_cols_xNN if col in self.df_pass.columns])
         self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition)
 

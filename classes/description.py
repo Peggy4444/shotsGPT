@@ -430,13 +430,13 @@ class PassDescription_logistic(Description):
 
         @property
         def gpt_examples_path(self):
-         return f"{self.gpt_examples_base}/action/shots.xlsx"
-        #    return []
+            return f"{self.gpt_examples_base}/action/passes.xlsx"
+            #return []
 
         @property
         def describe_paths(self):
-             return [f"{self.describe_base}/action/shots.xlsx"]
-        #    return []
+            return [f"{self.describe_base}/action/passes.xlsx"]
+            #return []
         
         def __init__(self,pass_data,df_contributions, pass_id, competition):
             self.pass_data = pass_data
@@ -537,13 +537,13 @@ class PassDescription_xNN(Description):
 
         @property
         def gpt_examples_path(self):
-        #     return f"{self.gpt_examples_base}/action/passes.xlsx"
-            return []
+            return f"{self.gpt_examples_base}/action/passes.xlsx"
+            #return []
 
         @property
         def describe_paths(self):
-        #     return [f"{self.describe_base}/action/passes.xlsx"]
-            return []
+            return [f"{self.describe_base}/action/passes.xlsx"]
+            #return []
         
         def __init__(self,pass_data,feature_contrib_df, pass_id, competition):
             self.pass_data = pass_data

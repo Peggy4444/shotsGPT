@@ -75,27 +75,27 @@ def describe_xT_pass(xT,xG):
     if xG != 0:
         if xT <= 0.024800:
             if xG < 0.066100:
-                description = f" It had low xT and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
             else:
-                description = f" It had low xT probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
         elif xT > 0.024800 and xT <= 0.066100:
             if xG < 0.066100:
-                description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
             else:
-                description = f" It had moderate xT value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
         elif xT > 0.066100 and xT <=  0.150000:
             if xG < 0.066100:
-                description = f" It had high xT and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
             else:
-                description = f" It had high xT and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
         else:
             if xG < 0.066100:
-                description = f" It had excellent xT and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
             else:
-                description = f" It had excellent xT and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
             
     else:
-        description = f" It did not lead to a shot, opportunities to score goal is less and was a safe pass."
+        description = f" The xT value is {xT} and it did not lead to a shot, opportunities to score goal is less and was a safe pass."
     return description
 
 
@@ -640,6 +640,135 @@ def describe_pass_features_logistic(features, competition):
 
 
 ### pass features defination for all models
+feature_name_mapping = {
+    'vertical_distance_to_center_contribution': 'squared distance to center',
+    'euclidean_distance_to_goal_contribution': 'euclidean distance to goal',
+    'nearby_opponents_in_3_meters_contribution': 'nearby opponents within 3 meters',
+    'opponents_in_triangle_contribution': 'number of opponents in triangle formed by shot location and goalposts',
+    'goalkeeper_distance_to_goal_contribution': 'distance to goal of the goalkeeper',
+    'header_contribution': 'header',
+    'distance_to_nearest_opponent_contribution': 'distance to nearest opponent',
+    'angle_to_goalkeeper_contribution': 'angle to goalkeepr',
+    'shot_with_left_foot_contribution': 'shot taken with left foot',
+    'shot_after_throw_in_contribution': 'shot after throw in',
+    'shot_after_corner_contribution': 'shot after corner',
+    'shot_after_free_kick_contribution': 'shot after free kick',
+    'shot_during_regular_play_contribution': 'shot during regular play'
+
+}
+def describe_shot_contributions(shot_contributions, shot_features, feature_name_mapping=feature_name_mapping):
+    text = "The contributions of the features to the xG of the shot, sorted by their magnitude from largest to smallest, are as follows:\n"
+    
+    # Extract the contributions from the shot_contributions DataFrame
+    contributions = shot_contributions.iloc[0].drop(['match_id', 'id', 'xG'])  # Drop irrelevant columns
+    
+    # Sort the contributions by their absolute value (magnitude) in descending order
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+    
+    # Get the top 4 contributions
+    #top_contributions = sorted_contributions.head(4)
+    top_contributions = sorted_contributions
+    
+    # Loop through the top contributions to generate descriptions
+    for idx, (feature, contribution) in enumerate(top_contributions.items()):
+
+        # Get the original sign of the contribution
+        original_contribution = contributions[feature]
+
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
+        
+            # Remove "_contribution" suffix to match feature names in shot_features
+            feature_name = feature.replace('_contribution', '')
+            
+            # Use feature_name_mapping to get the display name for the feature (if available)
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            
+            # Get the feature value from shot_features
+            feature_value = shot_features[feature_name]
+            
+            # Get the feature description
+            feature_value_description = describe_shot_single_feature(feature_name, feature_value)
+            
+            # Add the feature's contribution to the xG description
+            if original_contribution > 0:
+                impact = 'maximum positive contribution'
+                impact_text = "increased the xG of the shot."
+            elif original_contribution < 0:
+                impact = 'maximum negative contribution'
+                impact_text = "reduced the xG of the shot."
+            else:
+                impact = 'no contribution'
+                impact_text = "had no impact on the xG of the shot."
+
+            # Use appropriate phrasing for the first feature and subsequent features
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description} This feature {impact_text}"
+        
+
+    return text
+
+
+
+
+def describe_shot_contributions1(shot_contributions, feature_name_mapping=feature_name_mapping, thresholds=None):
+    
+    # Default thresholds if none are provided
+    thresholds = thresholds or {
+        'very_large': 0.75,
+        'large': 0.50,
+        'moderate': 0.25,
+        'low': 0.00
+    }
+
+    # Initialize a list to store contributions that are not 'match_id', 'id', or 'xG'
+    valid_contributions = {}
+
+    # Loop through the columns to select valid ones
+    for feature, contribution in shot_contributions.iloc[0].items():
+        if feature not in ['match_id', 'id', 'xG']:  # Skip these columns
+            valid_contributions[feature] = contribution
+
+    # Convert to Series and sort by absolute values in descending order
+    sorted_contributions = (
+        pd.Series(valid_contributions)
+        .apply(lambda x: abs(x))
+        .sort_values(ascending=False)
+    )
+
+    # Loop through the sorted contributions and categorize them based on thresholds
+    for feature, contribution in sorted_contributions.items():
+        # Get the original sign of the contribution
+        original_contribution = valid_contributions[feature]
+
+        # Use the feature_name_mapping dictionary to get the display name for the feature
+        feature_display_name = feature_name_mapping.get(feature, feature)
+
+        # Determine the contribution level
+        if abs(contribution) > thresholds['very_large']:
+            level = 'very large'
+        elif abs(contribution) > thresholds['large']:
+            level = 'large'
+        elif abs(contribution) > thresholds['moderate']:
+            level = 'moderate'
+        else:
+            level = 'low'
+
+        # Distinguish between positive and negative contributions
+        if original_contribution > 0:
+            explanation = f"{feature_display_name} has a {level} positive contribution, which increased the xG of the shot"
+        elif original_contribution < 0:
+            explanation = f"{feature_display_name} has a {level} negative contribution, which reduced the xG of the shot"
+        else:
+            explanation = f"{feature_display_name} had no contribution to the xG of the shot"
+
+        # Add to the text
+        text += f"{explanation}\n"
+    
+    return text
+
+### pass features
 def describe_pass_single_feature(feature_name, feature_value): 
     if feature_name == "pass_length":
         if feature_value < 14.456917459901321:
