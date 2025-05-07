@@ -240,6 +240,7 @@ with tab3:
     f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
     unsafe_allow_html=True
     )
+
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
