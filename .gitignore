@@ -20,3 +20,4 @@ secrets.toml:Zone.Identifier
 *:Zone.Identifier
 data/tracking_2022_2023.parquet
 data/features_2022_2023_final.csv
+data/features_2022_2023_final (2).csv

@@ -1013,4 +1013,33 @@ def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_na
         
 
     return text
+def describe_pass_contributions_mimic(contributions_mimic_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "The contributions of the features to the xT (MIMiC model), sorted by their magnitude from largest to smallest, are as follows:\n"
 
+    # Drop irrelevant columns
+    contributions = contributions_mimic_df.iloc[0].drop(['match_id', 'id', 'mimic_xT','leaf_id','leaf_intercept'])
+
+    # Sort by absolute value
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+
+    for idx, (feature, contribution) in enumerate(sorted_contributions.items()):
+        original_contribution = contributions[feature]
+
+        if abs(original_contribution) >= 0.01:  # Customize threshold as needed
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            feature_value = pass_features.get(feature, None)
+            feature_value_description = describe_pass_single_feature(feature, feature_value)
+
+            if original_contribution > 0:
+                impact = 'positive contribution'
+                impact_text = "increased the xT."
+            else:
+                impact = 'negative contribution'
+                impact_text = "reduced the xT."
+
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had a {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother key feature is {feature_display_name}, which had a {impact} because {feature_value_description}. This feature {impact_text}"
+
+    return text

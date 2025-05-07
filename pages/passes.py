@@ -32,16 +32,22 @@ import numpy as np
 import argparse
 import tiktoken
 import os
-from utils.utils import normalize_text,SimplerNet
+from utils.utils import normalize_text
+from utils.utils import SimplerNet
 
+
+#from classes.visual import PassVisual_logistic as PassVisual
 from classes.data_source import Passes
+from classes.visual import PassVisual
+from classes.visual import PassContributionPlot_Mimic
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
-from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot
-from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
+from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
 from classes.chat import Chat
+#from classes.data_source import show_mimic_tree_in_streamlit
 
 
+    
 # Function to load and inject custom CSS from an external file
 def load_css(file_name):
     with open(file_name) as f:
@@ -97,6 +103,7 @@ tracking_df = pass_data.df_tracking
 pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col and col != "xT"]]
 pass_df_xgboost = pass_data.pass_df_xgboost
 df_passes_xnn = pass_data.pass_df_xNN #extracting dataset for xNN from classes Pass
+pass_df_mimic = pass_data.pass_df_mimic
 
 
 # Dropdown showing actual pass IDs
@@ -110,12 +117,13 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost",
 # Sample content
 with tab1:
     st.header("Logistic Regression")
-    
+
     model = Passes.load_model_logistic(selected_competition, show_summary=True)
     pass_df_logistic = pass_df.drop(['h1','h2','h3','h4'],axis=1)
-    st.write(pass_df_logistic.astype(str))
     
-    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution logistic model</h3>", unsafe_allow_html=True)
+    st.write(pass_df.astype(str))
+    
+    st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
     
     df_contributions = pass_data.df_contributions
     st.write(df_contributions.astype(str))
@@ -124,7 +132,7 @@ with tab1:
     metrics = [col for col in df_contributions.columns if col not in excluded_columns]
 
    # Build and show plot
-    st.markdown("<h3 style='font-size:18px; color:black;'>Logistic contribution plot</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size:24px; color:black;'>Logistic contribution plot</h3>", unsafe_allow_html=True)
     visuals_logistic = PassContributionPlot_Logistic(df_contributions=df_contributions,df_passes=pass_df,metrics=metrics)
     visuals_logistic.add_passes(pass_df,metrics,selected_pass_id=selected_pass_id)
     visuals_logistic.add_pass(contribution_df=df_contributions, pass_df=pass_df, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
@@ -137,6 +145,8 @@ with tab1:
     f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
     unsafe_allow_html=True
     )
+
+
 
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
@@ -164,7 +174,7 @@ with tab1:
   
 with tab2:
     st.header("xNN")
-
+    
     st.markdown("<h3 style='font-size:18px; color:black;'>Logistic models based on features classification</h3>", unsafe_allow_html=True)
     model = Passes.load_pressure_model(selected_competition, show_summary=True)
     model = Passes.load_speed_model(selected_competition,show_summary=True)
@@ -207,16 +217,18 @@ with tab2:
 
  
 with tab3:
-    st.header("xgBoost")
+    st.header("XGBoost")
 
-    #model = pass_data.load_xgboost_model(selected_competition)
+   # model = Passes.load_xgboost_model(selected_competition)
     st.write(pass_df_xgboost.astype(str))
-    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size:24px; color:black;'>Feature contribution from model</h3>", unsafe_allow_html=True)
+    #feature_contrib_df = Passes.get_feature_contributions(pass_df_xgboost, model)
     feature_contrib_df = pass_data.feature_contrib_df
+    
     st.write(feature_contrib_df.astype(str))
 
     # Show the XGBoost feature contribution plot
-    st.markdown("<h3 style='font-size:18px; color:black;'>xgBoost contribution plot</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size:24px; color:black;'>XGBoost contribution plot</h3>", unsafe_allow_html=True)
 
     excluded_columns = ['xT_predicted','id', 'match_id']
     metrics = [col for col in feature_contrib_df.columns if col not in excluded_columns]
@@ -227,7 +239,7 @@ with tab3:
     pass_id=selected_pass_id,metrics=metrics,selected_pass_id=selected_pass_id)
 
     visuals_xgboost.show()
-    
+
     xt_value_xgboost = feature_contrib_df[feature_contrib_df['id'] == pass_id]['xT_predicted']
     xt_value_xgboost = xt_value_xgboost.iloc[0] if not xt_value_xgboost.empty else "N/A"
 
@@ -235,26 +247,88 @@ with tab3:
     f"<h4 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value_xgboost}</h4>",
     unsafe_allow_html=True
     )
-
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
     visuals.show()
 
     descriptions = PassDescription_xgboost(pass_data,feature_contrib_df,pass_id, selected_competition)
     
-
-
 with tab4:
     st.header("CNN")
     pass_df_cnn = pass_df.drop(['speed_difference'],axis=1)
     st.write(pass_df_cnn.astype(str))
+    #model = Passes.load_model(selected_competition, show_summary=False)
 
 
+    
 with tab5:
-    st.header("Regression trees")
-    pass_df_trees = pass_df.drop(['speed_difference'],axis=1)
-    st.write(pass_df_trees.astype(str))
+    st.header("Regression trees (Mimic Model)")
 
-    visuals = PassVisual(metric=None)
-    visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
-    visuals.show()
+    # Drop any temp columns and show the clean pass DF
+    st.write(pass_data.pass_df_mimic.astype(str))
+
+    # Get mimic contributions (already computed in Passes class)
+    df_contrib_mimic = pass_data.df_contributions_mimic
+    if df_contrib_mimic.empty:
+        st.error("Mimic contributions could not be computed due to missing required features.")
+    else:
+        st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution mimic model</h3>", unsafe_allow_html=True)
+        st.write(df_contrib_mimic.astype(str))
+
+        #  Metrics used for plotting
+        excluded_cols = ["mimic_xT", "leaf_id", "leaf_intercept", "id", "match_id"]
+        mimic_metrics = [col for col in df_contrib_mimic.columns if col.endswith("_contribution_mimic") and col not in excluded_cols]
+
+        #  Plot contributions
+        st.markdown("<h3 style='font-size:18px; color:black;'>Mimic contribution plot</h3>", unsafe_allow_html=True)
+
+        from classes.visual import PassContributionPlot_Mimic
+        mimic_plot = PassContributionPlot_Mimic(df_contributions_mimic=df_contrib_mimic, df_passes=pass_data.pass_df_mimic, metrics=mimic_metrics)
+        mimic_plot.add_passes(pass_data.pass_df_mimic, mimic_metrics, selected_pass_id=selected_pass_id)
+        mimic_plot.add_pass(df_contrib_mimic, pass_data.pass_df_mimic, selected_pass_id, mimic_metrics, selected_pass_id=selected_pass_id)
+        mimic_plot.show()
+
+        #  Show predicted xT value
+        xt_value_mimic = df_contrib_mimic[df_contrib_mimic['id'] == pass_id]['mimic_xT']
+        xt_value_mimic = xt_value_mimic.iloc[0] if not xt_value_mimic.empty else "N/A"
+
+        st.markdown(
+            f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | mimic xT : {xt_value_mimic:.3f}</h5>",
+            unsafe_allow_html=True
+        )
+
+        #  Pitch visual
+        visuals = PassVisual(metric=None)
+        visuals.add_pass(pass_data, pass_id, home_team_color="green", away_team_color="red")
+        visuals.show()
+
+        #  Descriptions
+        descriptions = PassDescription_mimic(pass_data, df_contrib_mimic, pass_id, selected_competition)
+
+        to_hash = ("Regression trees (Mimic Model)",selected_match_id, pass_id)
+        summaries = descriptions.stream_gpt()
+        chat = create_chat(to_hash, Chat)
+
+        if summaries:
+            chat.add_message(summaries)
+
+
+
+        chat.state = "default"
+        chat.display_messages()
+
+    #     with st.expander("🗺️  Show mimic regression‑tree (path highlighted)"):
+    # # 1) grab the feature‑vector of the currently selected pass
+    #         x_selected = pass_df_mimic.loc[
+    #             pass_df_mimic["id"] == selected_pass_id, pass_data.feature_names
+    #         ].values[0]                 # shape (20,)
+
+    #     # 2) visualise
+    #     show_mimic_tree_in_streamlit(
+    #         tree                 = pass_data.tree,
+    #         feature_names        = pass_data.feature_names,
+    #         x_train              = pass_data.X_train_for_viz,   # or sample
+    #         y_train              = pass_data.y_train_for_viz,   # or sample
+    #         x_selected_row       = x_selected,
+    #         height_px            = 700
+    #     )

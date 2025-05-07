@@ -845,3 +845,114 @@ class CountryDescription(Description):
             # "Finally, summarise exactly how the player compares to others in the same position. "
         )
         return [{"role": "user", "content": prompt}]
+class PassDescription_mimic(Description):
+
+    output_token_limit = 500
+
+    @property
+    def gpt_examples_path(self):
+        return f"{self.gpt_examples_base}/action/shots.xlsx"
+       # return []  # Provide path if examples are available
+
+    @property
+    def describe_paths(self):
+        return [f"{self.describe_base}/action/shots.xlsx"]
+       # return []  # Provide path if question-answer data exists
+
+    def __init__(self, pass_data, df_contrib_mimic, pass_id, competition):
+        self.pass_data = pass_data
+        self.df_contributions = df_contrib_mimic
+        self.pass_id = pass_id
+        self.competition = competition
+        super().__init__()
+
+    def synthesize_text(self):
+        passes = self.pass_data.df_pass[ self.pass_data.df_pass["id"] == self.pass_id ]
+        #contributions = self.df_contributions_mimic[ self.df_contributions_mimic["id"] == self.pass_id ]
+        contributions = self.df_contributions[ self.df_contributions["id"] == self.pass_id ]
+
+        tracking = self.pass_data.df_tracking[ self.pass_data.df_tracking["id"] == self.pass_id ]
+
+        if passes.empty:
+            raise ValueError(f"No pass found with ID {self.pass_id}")
+
+        player_name = passes['passer_name'].iloc[0]
+        team_name = passes['team_name'].iloc[0]
+        x = passes['passer_x'].iloc[0]
+        y = passes['passer_y'].iloc[0]
+        team_direction = tracking['team_direction'].iloc[0]
+        xT = contributions['mimic_xT'].iloc[0]
+
+        xG = passes['possession_xg'].iloc[0]
+
+        forward_pass = passes['forward pass'].iloc[0]
+        back_pass = passes['backward pass'].iloc[0]
+        lateral_pass = passes['lateral pass'].iloc[0]
+
+        if forward_pass:
+            pass_type = "forward pass"
+        elif back_pass:
+            pass_type = "back pass"
+        elif lateral_pass:
+            pass_type = "lateral pass"
+        else:
+            pass_type = "an unspecified pass"
+        
+        
+        pass_features = {'pass_length' : passes['pass_length'].iloc[0]  ,
+                            'start_angle_to_goal' : passes['start_angle_to_goal'].iloc[0],
+                            'start_distance_to_goal' :passes['start_distance_to_goal'].iloc[0] ,
+                            'opponents_beyond':passes['opponents_beyond'].iloc[0],
+                            'opponents_between' : passes['opponents_between'].iloc[0], 
+                            'packing' : passes['packing'].iloc[0], 
+                            'average_speed_of_teammates' : passes['average_speed_of_teammates'].iloc[0], 
+                            'average_speed_of_opponents' : passes['average_speed_of_opponents'].iloc[0] ,
+                            'pressure_level_passer' : passes['pressure level passer'].iloc[0],
+                            'opponents_nearby' : passes['opponents_nearby'].iloc[0],
+                            'possession_xg' : passes['possession_xg'].iloc[0],
+                            'teammates_beyond' : passes['teammates_beyond'].iloc[0],
+                            'teammates_behind' : passes['teammates_behind'].iloc[0],
+                            'opponents_beyond' : passes['opponents_beyond'].iloc[0],
+                            'opponents_behind' : passes['opponents_behind'].iloc[0],
+                            'pressure_on_passer' : passes['pressure_on_passer'].iloc[0],
+                            'pass_angle' : passes['pass_angle'].iloc[0],
+                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0],
+                            'start_distance_to_sideline' : passes['start_distance_to_sideline'].iloc[0],
+                            'end_distance_to_sideline' : passes['end_distance_to_sideline'].iloc[0],
+                            'end_distance_to_goal' : passes['end_distance_to_goal'].iloc[0],
+                            'teammates_nearby' : passes['teammates_nearby'].iloc[0]                       
+                            }
+        
+        # Extract mimic-related features (raw features for description)
+        #pass_row = passes.iloc[0]
+        #pass_features = {
+            #col.replace("_mimic", ""): pass_row[col]
+            #for col in pass_row.index
+            #if col.endswith("_mimic")
+        #}
+
+
+        feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
+
+        description = (
+            f"The pass is a {pass_type} made from {sentences.describe_position_pass(x, y, team_direction)}, "
+            f"executed by {player_name} of {team_name}. "
+            f"{sentences.describe_xT_pass(xT, xG)}"
+        )
+        description += '\n' + '\n'.join(feature_descriptions)
+        description += '\n' + sentences.describe_pass_contributions_mimic(contributions, pass_features)
+
+        with st.expander("Synthesized Text"):
+            st.write(description)
+
+        return description
+
+    def get_prompt_messages(self):
+        prompt = (
+            "You are a football commentator. Write an insightful 4-sentence summary of a pass. "
+            "Start by evaluating its overall effectiveness, including xT and xG. "
+            "Then, highlight the key tactical or spatial features that contributed to or limited its danger. "
+            "Use vivid football language, and close by either praising the player or suggesting tactical alternatives."
+        )
+        return [{"role": "user", "content": prompt}]
+

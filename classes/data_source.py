@@ -36,6 +36,11 @@ from joblib import load
 import shap
 import xgboost as xgb
 import joblib
+from utils.utils import SimplerNet
+from dtreeviz import dtreeviz
+
+#from dtreeviz.trees import dtreeviz
+import streamlit.components.v1 as components
 
 
 
@@ -841,14 +846,63 @@ class Passes(Data):
         drop_cols_xNN = ['possession_xG_target','speed_difference','end_distance_to_sideline_contribution','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
         self.pass_df_xNN = self.df_pass.drop(columns=[col for col in drop_cols_xNN if col in self.df_pass.columns])
         self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition)
-        self.tree, self.leaf_models = self.load_mimic_models(competition)
-        self.df_contributions_mimic = self.weight_contributions_mimic()
+
+        #self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
+        #self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
+
+
+
+        #Initializing for mimic
+        ''''
+        drop_cols_mimic = [
+            'possession_xG_target', 'speed_difference', 'xT',
+            'h1', 'h2', 'h3', 'h4',
+            'start_distance_to_goal_contribution', 'packing_contribution',
+            'pass_angle_contribution', 'pass_length_contribution',
+            'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution',
+            'start_distance_to_sideline_contribution', 'teammates_beyond_contribution',
+            'opponents_beyond_contribution', 'teammates_nearby_contribution',
+            'opponents_between_contribution', 'opponents_nearby_contribution',
+            'speed_difference_contribution'
+        ]
+        self.pass_df_mimic = self.df_pass.drop(columns=[col for col in drop_cols_mimic if col in self.df_pass.columns])
+        self.df_contributions_mimic = self.weight_contributions_mimic(self.pass_df_mimic)
+        '''
+        
+        #mimic_features = self.load_mimic_feature_names()
+        self.tree = self.load_mimic_tree(competition)
+        self.leaf_models = self.load_leaf_models(competition)
+        self.feature_names = self.load_mimic_feature_names(competition)
+        self.leaf_feature_means = self.load_leaf_feature_means(competition)
+
+        
+# check for mathcing features
+        missing = set(self.feature_names) - set(self.df_pass.columns)
+        if missing:
+            st.error(f"Missing required mimic features: {missing}")
+            self.pass_df_mimic = pd.DataFrame()
+            self.df_contributions_mimic = pd.DataFrame()
+        else:
+            self.pass_df_mimic = self.df_pass[self.feature_names + ["id", "match_id"]]
+            self.df_contributions_mimic = self.weight_contributions_mimic(self.pass_df_mimic,self.tree,self.leaf_models,self.feature_names,self.leaf_feature_means)
+
+        self.tree = self.load_mimic_tree(competition)
+        self.leaf_models = self.load_leaf_models(competition)
+        self.feature_names = self.load_mimic_feature_names(competition)
+        self.leaf_feature_means = self.load_leaf_feature_means(competition)
+        self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
+        self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
+
+
+        
+
+        
 
 
     def get_data(self, match_id=None):
         self.df_pass = pd.read_csv("data/df_passes.csv")
         self.df_tracking = pd.read_csv("data/tracking.csv")
-
+        
 
         if match_id is not None:
             match_id = int(match_id)
@@ -1024,7 +1078,110 @@ class Passes(Data):
         df_contribution['xT'] = xG_values
 
         return df_contribution
+    
+    @staticmethod
+    def load_mimic_tree(competition):
+        competitions_dict = {
+            "Allsevenskan 2022": "data/mimic_tree.pkl",
+            "Allsevenskan 2023": "data/mimic_tree.pkl",
+            
+            
+        }
+        saved_model_path = competitions_dict.get(competition)
 
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None
+    @staticmethod
+    def load_leaf_models(competition):
+        competitions_dict = {
+            "Allsevenskan 2022": "data/leaf_models.pkl",
+            "Allsevenskan 2023": "data/leaf_models.pkl",
+            
+            
+        }
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None
+    
+    @staticmethod
+    def load_mimic_feature_names(competition):
+        competitions_dict = {
+            "Allsevenskan 2022": "data/mimic_feature_names.pkl",
+            "Allsevenskan 2023": "data/mimic_feature_names.pkl",
+            
+            
+        }
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None
+    
+    @staticmethod
+    def load_leaf_feature_means(competition):
+        competitions_dict = {
+            "Allsevenskan 2022": "data/leaf_feature_means.pkl",
+            "Allsevenskan 2023": "data/leaf_feature_means.pkl",
+            
+            
+        }
+        saved_model_path = competitions_dict.get(competition)
+
+        if not saved_model_path:
+            st.error("Model file not found for the selected competition.")
+            return None
+
+        try:
+            model = load(saved_model_path)
+            return model
+        
+
+        except FileNotFoundError:
+            st.error(f"Model file not found at: {saved_model_path}")
+            return None
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None
+                    
     @staticmethod
     def load_model_logistic(competition, show_summary=False):
 
@@ -1058,207 +1215,8 @@ class Passes(Data):
                     
 
     
-    @staticmethod
-    def load_mimic_models(competition):
-        
-        comps_dict = {
-            "Allsevenskan 2022": ("data/mimic_tree.sav","data/leaf_models.sav"),
-            "Allsevenskan 2023": ("data/mimic_tree.sav","data/leaf_models.sav")
-        }
-        if competition not in comps_dict:
-            return None, None
-
-        tree_path, leaf_models_path = comps_dict[competition]
-        try:
-            tree = joblib.load(tree_path)
-            leaf_models = joblib.load(leaf_models_path)
-            return tree, leaf_models
-        except FileNotFoundError:
-            st.warning(f"Mimic tree not found: {tree_path}, {leaf_models_path}")
-            return None, None
-        except Exception as e:
-            st.warning(f"Error loading mimic tree: {e}")
-            return None
-
-    def weight_contributions_mimic(self):
-        
-
-        # if self.tree is None or self.leaf_models is None:
-        #     st.error("Mimic models (tree/leaf) are not loaded.")
-        #     return pd.DataFrame()
-
-        # # Load training feature names
-        # train_feature_names = joblib.load("C:/Users/User/Desktop/mimic_feature_names.pkl")
-
-        # # Rename columns to match training features
-        # column_rename_map = {
-        #     "start_distance_to_goal": "passer distance goal",
-        #     "end_distance_to_goal": "pass end distance to goal",
-        #     "pass_length": "pass length",
-        #     "pass_angle": "pass angle",
-        #     "start_angle_to_goal": "passer angle goal",
-        #     "end_angle_to_goal": "pass end angle to goal",
-        #     "start_distance_to_sideline": "Passer distance to sideline",
-        #     "end_distance_to_sideline": "pass end distance to sideline",
-        #     "teammates_behind": "teammates behind passer",
-        #     "teammates_beyond": "teammates beyond passer",
-        #     "opponents_beyond": "opponents beyond passer",
-        #     "opponents_behind": "opponents behind passer",
-        #     "opponents_between": "opponents_between",
-        #     "packing": "opponents bypass new",
-        #     "pressure_on_passer": "total pressure passer",
-        #     "average_speed_of_teammates": "average speed team",
-        #     "average_speed_of_opponents": "average speed opponent",
-        #     "opponents_nearby": "opponents near the passer",
-        #     "teammates_nearby": "teammates near passer"
-        # }
 
         
-        # df_pass = self.df_pass.copy()
-        # df_pass = df_pass.rename(columns=column_rename_map)
-
-        
-        # st.write("Renamed df_pass columns:", df_pass.columns.tolist())
-        # st.write("Expected train feature names:", train_feature_names)
-
-        # # Verify all required features are present
-        # missing = set(train_feature_names) - set(df_pass.columns)
-        # if missing:
-        #     st.error(f"Missing features in input data: {missing}")
-        #     return pd.DataFrame()
-
-        # X_pass_df = df_pass[train_feature_names]
-        # X_pass = X_pass_df.values.astype(np.float32)
-
-        # # Assign passes to tree leaves
-        # leaf_indices = self.tree.apply(X_pass)
-
-        # # Compute leaf feature means
-        # leaf_feature_means = {
-        #     leaf_id: X_pass[np.where(leaf_indices == leaf_id)[0]].mean(axis=0)
-        #     for leaf_id in np.unique(leaf_indices)
-        # }
-        # # Build result dataframe
-        
-        # df_result = df_pass[["id", "match_id"]].copy()
-        # df_result["leaf_id"] = leaf_indices
-        # df_result["leaf_intercept"] = 0.0
-        # df_result["mimic_xT"] = 0.0
-
-        # for feat in train_feature_names:
-        #     df_result[f"{feat}_contribution_mimic"] = 0.0
-
-        #     for i in range(len(X_pass)):
-        #         leaf_id = leaf_indices[i]
-        #         if leaf_id not in self.leaf_models:
-        #             continue
-
-        #     lin_model = self.leaf_models[leaf_id]
-        #     intercept = lin_model.intercept_
-        #     mean_vec = leaf_feature_means[leaf_id]
-
-        #     x_centered = X_pass[i] - mean_vec
-        #     partials = lin_model.coef_ * x_centered
-        #     sum_partials = partials.sum()
-        #     raw_xT = np.clip(intercept + sum_partials, 0, 1)
-
-        #     df_result.at[i, "leaf_intercept"] = intercept
-        #     df_result.at[i, "mimic_xT"] = raw_xT
-
-        #     for j, feat_name in enumerate(train_feature_names):
-        #         df_result.at[i, f"{feat_name}_contribution_mimic"] = partials[j]
-
-        # core_cols = ["id", "match_id", "leaf_id", "leaf_intercept", "mimic_xT"]
-        # contrib_cols = [f"{f}_contribution_mimic" for f in train_feature_names]
-        # return df_result[core_cols + contrib_cols]
-
-        if self.tree is None or self.leaf_models is None:
-            st.error("Mimic models (tree/leaf) are not loaded.")
-            return pd.DataFrame()
-
-        # Load training feature names
-        train_feature_names = joblib.load("data/mimic_feature_names.pkl")
-
-        # Rename columns to match training features
-        column_rename_map = {
-            "start_distance_to_goal": "passer distance goal",
-            "end_distance_to_goal": "pass end distance to goal",
-            "pass_length": "pass length",
-            "pass_angle": "pass angle",
-            "start_angle_to_goal": "passer angle goal",
-            "end_angle_to_goal": "pass end angle to goal",
-            "start_distance_to_sideline": "Passer distance to sideline",
-            "end_distance_to_sideline": "pass end distance to sideline",
-            "teammates_behind": "teammates behind passer",
-            "teammates_beyond": "teammates beyond passer",
-            "opponents_beyond": "opponents beyond passer",
-            "opponents_behind": "opponents behind passer",
-            "opponents_between": "opponents_between",
-            "packing": "opponents bypass new",
-            "pressure_on_passer": "total pressure passer",
-            "average_speed_of_teammates": "average speed team",
-            "average_speed_of_opponents": "average speed opponent",
-            "opponents_nearby": "opponents near the passer",
-            "teammates_nearby": "teammates near passer"
-        }
-
-        # pass data
-        df_pass = self.df_pass.copy()
-        df_pass = df_pass.rename(columns=column_rename_map)
-
-        # look for missing features
-        missing = set(train_feature_names) - set(df_pass.columns)
-        if missing:
-            st.error(f"Missing features in input data: {missing}")
-            return pd.DataFrame()
-
-        # extract features and apply decision tree
-        X_pass_df = df_pass[train_feature_names]
-        X_pass = X_pass_df.values.astype(np.float32)
-        leaf_indices = self.tree.apply(X_pass)
-
-        # compute mean feature values for each leaf
-        leaf_feature_means = {}
-        for leaf_id in np.unique(leaf_indices):
-            idxs = np.where(leaf_indices == leaf_id)[0]
-            leaf_feature_means[leaf_id] = X_pass[idxs].mean(axis=0)
-
-        # initialize result df
-        df_result = df_pass[["id", "match_id"]].copy()
-        df_result["leaf_id"] = leaf_indices
-        df_result["leaf_intercept"] = 0.0
-        df_result["mimic_xT"] = 0.0
-
-        for feat in train_feature_names:
-            df_result[f"{feat}_contribution_mimic"] = 0.0
-
-        # compute contributions
-        for i in range(len(X_pass)):
-            leaf_id = leaf_indices[i]
-            if leaf_id not in self.leaf_models:
-                continue
-
-            lin_model = self.leaf_models[leaf_id]
-            intercept = lin_model.intercept_
-            mean_vec = leaf_feature_means[leaf_id]
-
-            x_centered = X_pass[i] - mean_vec
-            partials = lin_model.coef_ * x_centered
-            raw_xT = np.clip(intercept + partials.sum(), 0, 1)
-
-            df_result.at[i, "leaf_intercept"] = intercept
-            df_result.at[i, "mimic_xT"] = raw_xT
-
-            for j, feat_name in enumerate(train_feature_names):
-                df_result.at[i, f"{feat_name}_contribution_mimic"] = partials[j]
-
-    # return final result
-        core_cols = ["id", "match_id", "leaf_id", "leaf_intercept", "mimic_xT"]
-        contrib_cols = [f"{f}_contribution_mimic" for f in train_feature_names]
-        return df_result[core_cols + contrib_cols]
-
-        
-    def load_xgboost_model(competition):
     
     @staticmethod
     def load_pressure_model(competition, show_summary=False):
@@ -1380,7 +1338,6 @@ class Passes(Data):
 
 
     def load_xNN(self,competition):
-        from utils.utils import SimplerNet
         competitions_dict = {
             "Allsevenskan 2022": "data/simplernet_full_model.pth",
             "Allsevenskan 2023": "data/simplernet_full_model.pth"
@@ -1539,10 +1496,225 @@ class Passes(Data):
 
         return shap_df 
     
+    # def load_mimic_tree(self):
+    #     try:
+    #         return joblib.load("data/mimic_tree.pkl")
+    #     except Exception as e:
+    #         st.error(f"Error loading mimic tree: {e}")
+    #         return None
+
+    # def load_leaf_models(self):
+    #     try:
+    #         return joblib.load("data/leaf_models.pkl")
+    #     except Exception as e:
+    #         st.error(f"Error loading leaf models: {e}")
+    #         return None
+
+    # def load_mimic_feature_names(self):
+    #     try:
+    #         return joblib.load("data/mimic_feature_names.pkl")
+    #     except Exception as e:
+    #         st.error(f"Error loading mimic feature names: {e}")
+    #         return []
+
+    # def load_leaf_feature_means(self):
+    #     try:
+    #         return joblib.load("data/leaf_feature_means.pkl")
+    #     except Exception as e:
+    #         st.error(f"Error loading leaf feature means: {e}")
+    #         return {}
+        
+    # def mimic_predict(X_input,tree,leaf_models):
+    #     leaf_indices = tree.apply(X_input)
+    #     preds = np.zeros(X_input.shape[0])
+    #     for i, leaf in enumerate(leaf_indices):
+    #         if leaf in leaf_models:
+    #             preds[i] = leaf_models[leaf].predict(X_input[i].reshape(1, -1))[0]
+    #         else:
+    #             preds[i] = tree.predict(X_input[i].reshape(1, -1))[0]
+    #     return preds
+
+    
+    
+    @staticmethod
+    def mimic_predict(X_input, tree, leaf_models):
+        leaf_indices = tree.apply(X_input)
+        preds = np.zeros(X_input.shape[0])
+        for i, leaf in enumerate(leaf_indices):
+            if leaf in leaf_models:
+                preds[i] = leaf_models[leaf].predict(X_input[i].reshape(1, -1))[0]
+            else:
+                preds[i] = tree.predict(X_input[i].reshape(1, -1))[0]
+        return preds
+
     
 
+    def weight_contributions_mimic(self,
+                               pass_df_mimic: pd.DataFrame,
+                               tree,
+                               leaf_models: dict,
+                               feature_names: list[str],
+                               leaf_feature_means: dict[int, np.ndarray]
+                               ) -> pd.DataFrame:
+    
+
+    
+        if not (tree and leaf_models and feature_names and leaf_feature_means):
+            st.error("Some mimic components are missing.")
+            return pd.DataFrame()
+
+        missing = set(feature_names) - set(pass_df_mimic.columns)
+        if missing:
+            st.error(f"Missing features in data: {missing}")
+            return pd.DataFrame()
+
+    #  feature matrix same as  training 
+        X_pass = pass_df_mimic[feature_names].values.astype(np.float32)
+
+    # mimic predictions for each row (pass)
+        xT_preds = self.mimic_predict(X_pass, tree, leaf_models)  # <- 20 cols only
+
+    #  leaf IDs
+        leaf_ids = tree.apply(X_pass)
+
+    #  loop and build rows(pass)
+        rows = []
+        for i, (x_vec, leaf_id) in enumerate(zip(X_pass, leaf_ids)):
+            lin_model = leaf_models.get(leaf_id)
+            if lin_model is None:           # should not happen
+                continue
+
+            mean_x        = leaf_feature_means[leaf_id]
+            contrib       = lin_model.coef_ * (x_vec - mean_x)
+
+            row = {
+            "id":            pass_df_mimic.loc[i, "id"],
+            "match_id":      pass_df_mimic.loc[i, "match_id"],
+            "leaf_id":       leaf_id,
+            "leaf_intercept": lin_model.intercept_,
+            "mimic_xT":      float(xT_preds[i]),
+        }
+        # add individual feature contributions
+            for feat_val, feat_name in zip(contrib, feature_names):
+                row[f"{feat_name}_contribution_mimic"] = feat_val
+
+            rows.append(row)
+
+    # final df
+        core_cols = ["id", "match_id", "leaf_id", "leaf_intercept", "mimic_xT"]
+        contrib_cols = [f"{f}_contribution_mimic" for f in feature_names]
+        return pd.DataFrame(rows)[core_cols + contrib_cols]
+
+        
+
+    # def weight_contributions_mimic(self,pass_df_mimic,tree,leaf_models,feature_names,leaf_feature_means):
+    # # Load mimic model parts
+    #     # tree = self.load_mimic_tree()
+    #     # leaf_models = self.load_leaf_models()
+    #     # feature_names = self.load_mimic_feature_names()
+    #     # leaf_feature_means = self.load_leaf_feature_means()
+    #     X_pass = pass_df_mimic[feature_names].values.astype(np.float32)
+    #     xT = Passes.mimic_predict(pass_df_mimic,tree,leaf_models)
+
+    #     if not tree or not leaf_models or not feature_names or not leaf_feature_means:
+    #         st.error("Mimic model components are missing or failed to load.")
+    #         return pd.DataFrame()
+    #     df_pass = pass_df_mimic.copy()
+
+    #     missing = set(feature_names) - set(df_pass.columns)
+    #     if missing:
+    #         st.error(f"Missing features in data: {missing}")
+    #         return pd.DataFrame()
+
+    #     #X_pass = df_pass[feature_names].values.astype(np.float32)
+    #     leaf_ids = tree.apply(X_pass)
+    
+    #     results = []
+    #     for i, x in enumerate(X_pass):
+    #         leaf_id = leaf_ids[i]
+    #         if leaf_id not in leaf_models:
+    #             continue
+
+    #         lin_model = leaf_models[leaf_id]
+    #         mean_x = leaf_feature_means[leaf_id]
+    #         x_centered = x - mean_x
+    #         contributions = lin_model.coef_ * x_centered
+    #         #raw = lin_model.intercept_ + contributions.sum()
+    #         #xT  = 1 / (1 + np.exp(-raw))      # instead of np.clip(raw, 0, 1)
+
+    #         #xT = np.clip(lin_model.intercept_ + contributions.sum(), 0, 1)
+
+    #         row = {
+    #             "id": df_pass.loc[i, "id"],
+    #             "match_id": df_pass.loc[i, "match_id"],
+    #             "leaf_id": leaf_id,
+    #             "leaf_intercept": lin_model.intercept_,
+    #             "mimic_xT": xT
+    #         }
+
+    #         for j, feat in enumerate(feature_names):
+    #             row[f"{feat}_contribution_mimic"] = contributions[j]
+
+    #         results.append(row)
+
+    #     df_result = pd.DataFrame(results)
+
+    #     core_cols = ["id", "match_id", "leaf_id",'leaf_intercept', "mimic_xT"]
+    #     contrib_cols = [f"{f}_contribution_mimic" for f in feature_names]
+
+    #     return df_result[core_cols + contrib_cols]
 
 
+        
+    
+#     def show_mimic_tree_in_streamlit(
+#             tree,
+#             feature_names,
+#             x_train, y_train,          # can be a 100‑row sample to keep the SVG small
+#             x_selected_row,            # 1‑D numpy array of the current pass (20 cols)
+#             height_px: int = 650
+#             ):
+#             """
+#             Render the whole DecisionTreeRegressor **and** highlight the
+#             decision‑path for `x_selected_row` inside a Streamlit container.
+#             """
+#             viz = dtreeviz(
+#                 model          = tree,
+#                 X_train        = x_train,
+#                 y_train        = y_train,
+#                 feature_names  = feature_names,
+#                 target_name    = "xT",
+#                 X              = x_selected_row,   # <- highlight this pass
+#                 precision      = 2,
+#                 fancy          = False             # True => gradient bars, slower
+#             )
+#             components.html(viz._repr_html_(), height=height_px, scrolling=True)
+# # -----------------------------------------------------------------
+
+
+
+# def show_mimic_tree_in_streamlit(
+#             tree,
+#             feature_names,
+#             x_train, y_train,          # can be a 100‑row sample to keep the SVG small
+#             x_selected_row,            # 1‑D numpy array of the current pass (20 cols)
+#             height_px: int = 650
+#             ):
+#             """
+#             Render the whole DecisionTreeRegressor **and** highlight the
+#             decision‑path for `x_selected_row` inside a Streamlit container.
+#             """
+#             viz = dtreeviz(
+#                 tree_model          = tree,
+#                 X_train        = x_train,
+#                 y_train        = y_train,
+#                 feature_names  = feature_names,
+#                 target_name    = "xT",
+#                 X              = x_selected_row,   # <- highlight this pass
+#                 precision      = 2,
+#                 fancy          = False             # True => gradient bars, slower
+#             )
+#             components.html(viz._repr_html_(), height=height_px, scrolling=True)
     
 
 
