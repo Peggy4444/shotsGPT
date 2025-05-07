@@ -37,7 +37,7 @@ import shap
 import xgboost as xgb
 import joblib
 from utils.utils import SimplerNet
-from dtreeviz import dtreeviz
+#from dtreeviz import dtreeviz
 
 #from dtreeviz.trees import dtreeviz
 import streamlit.components.v1 as components
