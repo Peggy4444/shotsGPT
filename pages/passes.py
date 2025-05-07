@@ -237,7 +237,7 @@ with tab3:
     chat = create_chat(to_hash, Chat)
 
     st.markdown(
-    f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
+    f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value_xgboost}</h5>",
     unsafe_allow_html=True
     )
 
