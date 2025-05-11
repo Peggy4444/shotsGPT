@@ -131,6 +131,9 @@ with tab1:
     df_contributions = pass_data.df_contributions
     st.write(df_contributions.astype(str))
 
+    logistic_contribution_describe = df_contributions.describe()
+    logistic_contribution_describe.to_csv("logistic_contribution_describe.csv")
+
     excluded_columns = ['xT','id', 'match_id']
     metrics = [col for col in df_contributions.columns if col not in excluded_columns]
 
@@ -154,8 +157,6 @@ with tab1:
     f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
     unsafe_allow_html=True
     )
-
-
 
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data,pass_id,home_team_color = "green" , away_team_color = "red")
@@ -193,7 +194,10 @@ with tab2:
     position_df = pass_data.position_df
     event_df = pass_data.event_df
 
+    xNN_contribution_describe = df_xnn_contrib.describe()
+
     st.write(df_xnn_contrib.astype(str))
+    xNN_contribution_describe.to_csv("xNN_contributions_describe.csv")
 
     excluded_columns = ['xT_predicted','id', 'match_id']
     metrics = [col for col in df_xnn_contrib.columns if col not in excluded_columns]

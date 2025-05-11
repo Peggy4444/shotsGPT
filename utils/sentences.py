@@ -101,9 +101,9 @@ def describe_xT_pass(xT,xG):
 
 def describe_xT_pass_1(xT,xG):
     if xG != 0:
-        if xT <= 0.05:
+        if xT <= 0.05178240314126015:
             description = f"It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}%. There is less chances for it to be a safe pass creating less goal scoring opportunities."
-        elif xT < 0.08: 
+        elif xT < 0.06652335822582245:
             description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}%. There is moderate chances of being a safe pass creating moderate goal scoring opportunities."
         else:
             description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is high chances of being a dangerous pass creating high goal scoring opportunities."   
@@ -111,6 +111,79 @@ def describe_xT_pass_1(xT,xG):
     else:
         description = f" The xT value is {xT} and it did not lead to a shot, opportunities to score goal is less and was a safe pass."
     return description
+
+
+### describe function for logistic
+def describe_xT_pass_logistic(xT,xG):
+    if xG != 0:
+        if xT <= 0.05882884: #25 percentile xT
+            if xG < 0.066100:
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
+            else:
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
+        elif xT > 0.05882884 and xT <= 0.079879159: #50 percentile
+            if xG < 0.066100:
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
+            else:
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
+        elif xT > 0.079879159 and xT <=  0.130563166: #75 percentile
+            if xG < 0.066100:
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
+            else:
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
+        else:
+            if xG < 0.066100:
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
+            else:
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
+            
+    else:
+        if xT <= 0.05882884: #25 percentile
+            description = f" The xT value is {xT} and it did not lead to a shot and opportunities to score goal is less."
+        elif xT <= 0.079879159: #50 percentile
+            description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is moderate."
+        elif xT <= 0.130563166: #75 percentile
+            description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is high."
+        else:
+            description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
+        return description
+
+
+### describe for xNN 
+def describe_xT_pass_xNN(xT,xG):
+    if xG != 0:
+        if xT <= 0.05178240314126015: #25 percentile xT
+            if xG < 0.066100:
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a safe pass creating less goal scoring opportunities."
+            else:
+                description = f" It had low xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with  xG value {xG:.3f}. There is less chances for it to be a dangerous pass creating a good goal scoring opportunities."
+        elif xT > 0.05178240314126015 and xT <= 0.06115284748375416: #50 percentile
+            if xG < 0.066100:
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a safe pass creating less goal scoring opportunities."
+            else:
+                description = f" It had moderate xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value is {xG:.3f}. There is moderate chances of being a dangerous pass creating good goal scoring opportunities."
+        elif xT > 0.06115284748375416 and xT <=  0.06652335822582245: #75 percentile
+            if xG < 0.066100:
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a safe pass creating less goal scoring opportunities."
+            else:
+                description = f" It had high xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% with xG value {xG:.3f}. There is high chances of being a dangerous pass creating good goal scoring opportunities."  
+        else:
+            if xG < 0.066100:
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
+            else:
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
+            
+    else:
+        if xT <= 0.05178240314126015: #25 percentile
+            description = f" The xT value is {xT} and it did not lead to a shot and opportunities to score goal is less."
+        elif xT <= 0.06115284748375416: #50 percentile
+            description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is moderate."
+        elif xT <= 0.06652335822582245: #75 percentile
+            description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is high."
+        else:
+            description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
+        return description
+
 
 def describe_position_pass(x, y, team_direction):
     # Mirror coordinates if team is attacking left
@@ -687,6 +760,8 @@ def describe_shot_contributions(shot_contributions, shot_features, feature_name_
 
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
+        print(original_contribution.describe())
+
 
         if original_contribution >= 0.01 or original_contribution <= -0.01:
         
@@ -999,9 +1074,9 @@ def describe_pass_contributions_logistic(contributions, pass_features, feature_n
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.1 or original_contribution <= -0.1:
+        if original_contribution >= 0.08735242468992192 or original_contribution <= -0.08735242468992192:
         
-            # Remove "_contribution" suffix to match feature names in shot_features
+            # Remove "_contribution" suffix to match feature names in pass_features
             feature_name = feature.replace('_contribution', '')
             
             # Use feature_name_mapping to get the display name for the feature (if available)
@@ -1074,7 +1149,7 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.1 or original_contribution <= -0.1:
+        if original_contribution >= 0.079879159 or original_contribution <= -0.079879159:
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)
@@ -1125,7 +1200,7 @@ def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_na
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.01 or original_contribution <= -0.01:
+        if original_contribution >= 0.00788100733068301 or original_contribution <= -0.00788100733068301:
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)

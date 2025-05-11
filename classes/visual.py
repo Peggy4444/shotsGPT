@@ -1695,7 +1695,6 @@ class DistributionPlot_position_model(Visual):
             metric_name = format_metric(col)
 
             y_pos = i * self.row_distance
-            print(f"[DEBUG] Annotating metric '{col}' → x = {ser_plot[col + plots]:.3f}, y = {y_pos}")
 
             self.fig.add_trace(
                 go.Scatter(
