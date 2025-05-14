@@ -43,9 +43,6 @@ from classes.visual import PassContributionPlot_Mimic
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
-from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,ModelContributionPlotXNNShap,PassContributionPlot_XGBoost,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position,PassContributionPlot_Logistic_event,DistributionPlot_position_model
-from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
 from classes.chat import Chat
 #from classes.data_source import show_mimic_tree_in_streamlit
 
@@ -184,15 +181,6 @@ with tab2:
 
     st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from xNN model</h3>", unsafe_allow_html=True)
     df_xnn_contrib = pass_data.contributions_xNN
-    shap_df_xnn = pass_data.model_contribution_xNN
-    contrib_pressure = pass_data.df_contributions_pressure
-    contrib_speed = pass_data.df_contributions_speed
-    contrib_position = pass_data.df_contributions_position
-    contrib_event = pass_data.df_contributions_event
-    pressure_df = pass_data.pressure_df
-    speed_df = pass_data.speed_df
-    position_df = pass_data.position_df
-    event_df = pass_data.event_df
 
     xNN_contribution_describe = df_xnn_contrib.describe()
 
@@ -202,79 +190,15 @@ with tab2:
     excluded_columns = ['xT_predicted','id', 'match_id']
     metrics = [col for col in df_xnn_contrib.columns if col not in excluded_columns]
 
-    #st.markdown("<h3 style='font-size:18px; color:black;'>Model contribution plot</h3>", unsafe_allow_html=True)
-    
+   # Build and show plot
     st.markdown("<h3 style='font-size:18px; color:black;'>Xnn contribution plot</h3>", unsafe_allow_html=True)
+    visuals_Xnn = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
+    visuals_Xnn.add_passes(df_passes_xnn,metrics)
+    visuals_Xnn.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
+    visuals_Xnn.show()
 
-
-    #xNN input contribution plot
-    metrics_shap = [c for c in shap_df_xnn.columns if c != "id"] 
-    visuals_xNN_model = ModelContributionPlotXNNShap(shap_df_xnn, df_passes_xnn, metrics_shap)
-    visuals_xNN_model.add_passes(df_passes_xnn, metrics_shap, selected_pass_id)
-    visuals_xNN_model.add_pass(shap_df_xnn, df_passes_xnn, selected_pass_id, metrics_shap, selected_pass_id)
-    plot_model_cobtribution = visuals_xNN_model.fig
-    
-    # all feature contribution plot
-    visuals_Xnn_feature = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
-    visuals_Xnn_feature.add_passes(df_passes_xnn,metrics)
-    visuals_Xnn_feature.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
-    plot_contribution = visuals_Xnn_feature.fig
-
-    #pressure based model contribution plot
-    metrics_pressure = [col for col in contrib_pressure.columns if col not in excluded_columns]
-    visuals_Xnn_Pressure = PassContributionPlot_Logistic_pressure(contrib_pressure,pressure_df,metrics_pressure)
-    visuals_Xnn_Pressure.add_passes(pressure_df,metrics_pressure,selected_pass_id=selected_pass_id)
-    visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id=selected_pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
-    plot_contribution_pressure = visuals_Xnn_Pressure.fig 
-
-    #Speed based model contribution plot
-    metrics_speed = [col for col in contrib_speed.columns if col not in excluded_columns]
-    visuals_Xnn_speed = PassContributionPlot_Logistic_speed(contrib_speed,speed_df,metrics_speed)
-    visuals_Xnn_speed.add_passes(speed_df,metrics_speed,selected_pass_id=selected_pass_id)
-    visuals_Xnn_speed.add_pass(contrib_speed,speed_df, pass_id=selected_pass_id, metrics=metrics_speed, selected_pass_id = selected_pass_id)
-    plot_contribution_speed = visuals_Xnn_speed.fig 
-
-
-    #position based model contribution plot
-    metrics_position = [col for col in contrib_position.columns if col not in excluded_columns]
-    visuals_Xnn_position = PassContributionPlot_Logistic_position(contrib_position,position_df,metrics_position)
-    visuals_Xnn_position.add_passes(position_df,metrics_position,selected_pass_id=selected_pass_id)
-    visuals_Xnn_position.add_pass(contrib_position,position_df, pass_id=selected_pass_id, metrics=metrics_position, selected_pass_id = selected_pass_id)
-    plot_contribution_position = visuals_Xnn_position.fig 
-
-    #event based model contribution plot
-    metrics_event = [col for col in contrib_event.columns if col not in excluded_columns]
-    visuals_Xnn_event = PassContributionPlot_Logistic_event(contrib_event,event_df,metrics_event)
-    visuals_Xnn_event.add_passes(event_df,metrics_event,selected_pass_id=selected_pass_id)
-    visuals_Xnn_event.add_pass(contrib_event,event_df, pass_id=selected_pass_id, metrics=metrics_event, selected_pass_id = selected_pass_id)
-    plot_contribution_event = visuals_Xnn_event.fig 
-
-    plots = {
-    "XNN Feature Contribution": plot_contribution,
-    "XNN Model SHAP Contribution": plot_model_cobtribution,
-    "H1:Pressure Based model" : plot_contribution_pressure,
-    "H2:Speed Based model" : plot_contribution_speed,
-    "H3:position based model" : plot_contribution_position,
-    "H4:event based model" : plot_contribution_event
-    }
-
-    selected_contribution_plot = st.selectbox("Select a plot:", options=list(plots.keys()),index=0)
-    placeholder = st.empty()
-
-
-    if selected_contribution_plot != "Select a plot…":
-        fig = plots[selected_contribution_plot]
-        fig.update_layout(
-        autosize=False,
-        width=1000,    # in pixels
-        height=500,   # in pixels
-        margin=dict(l=20, r=20, t=20, b=20),
-        )
-        placeholder.write(fig)
-
-    
-    xt_value_xnn = df_xnn_contrib[df_xnn_contrib['id'] == pass_id]['xT_predicted']
-    xt_value_xnn = xt_value_xnn.iloc[0] if not xt_value_xnn.empty else "N/A"
+    xt_value = df_xnn_contrib[df_xnn_contrib['id'] == pass_id]['xT_predicted']
+    xt_value = xt_value.iloc[0] if not xt_value.empty else "N/A"
  
     descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,pass_id, selected_competition)
 
@@ -283,7 +207,7 @@ with tab2:
     chat = create_chat(to_hash, Chat)
 
     st.markdown(
-    f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value_xnn}</h5>",
+    f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | xT : {xt_value}</h5>",
     unsafe_allow_html=True
     )
     visuals = PassVisual(metric=None)
