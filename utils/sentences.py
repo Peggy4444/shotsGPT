@@ -135,8 +135,7 @@ def describe_xT_pass_logistic(xT,xG):
             if xG < 0.066100:
                 description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
             else:
-                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
-            
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass."    
     else:
         if xT <= 0.05882884: #25 percentile
             description = f" The xT value is {xT} and it did not lead to a shot and opportunities to score goal is less."
@@ -146,7 +145,7 @@ def describe_xT_pass_logistic(xT,xG):
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is high."
         else:
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
-        return description
+    return description
 
 
 ### describe for xNN 
@@ -171,8 +170,7 @@ def describe_xT_pass_xNN(xT,xG):
             if xG < 0.066100:
                 description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
             else:
-                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
-            
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass."   
     else:
         if xT <= 0.05178240314126015: #25 percentile
             description = f" The xT value is {xT} and it did not lead to a shot and opportunities to score goal is less."
@@ -182,7 +180,8 @@ def describe_xT_pass_xNN(xT,xG):
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is high."
         else:
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
-        return description
+    
+    return description
 
 
 def describe_position_pass(x, y, team_direction):

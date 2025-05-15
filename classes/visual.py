@@ -842,7 +842,7 @@ class PassContributionPlot_Logistic(DistributionPlot_logistic):
             hover_text = []
             pass_id = row["id"]
             pass_number = selected_pass_id
-            #hover_text.append(f"Pass #{pass_number}")
+            hover_text.append(f"Pass #{pass_id}")
             pass_features = df_passes[df_passes["id"] == pass_id]
             if not pass_features.empty:
                 pass_features = pass_features.iloc[0]
@@ -1070,7 +1070,7 @@ class PassContributionPlot_Xnn(xnn_plot):
             hover_text = []
             pass_id = row["id"]
             #pass_number = selected_pass_id
-            #hover_text.append(f"Pass #{pass_number}")
+            hover_text.append(f"Pass #{pass_id}")
             pass_features = df_passes_xnn[df_passes_xnn["id"] == pass_id]
             if not pass_features.empty:
                 pass_features = pass_features.iloc[0]
