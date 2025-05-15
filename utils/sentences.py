@@ -760,7 +760,7 @@ def describe_shot_contributions(shot_contributions, shot_features, feature_name_
 
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
-        print(original_contribution.describe())
+        
 
 
         if original_contribution >= 0.01 or original_contribution <= -0.01:
