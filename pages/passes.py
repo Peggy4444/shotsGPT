@@ -311,6 +311,9 @@ with tab3:
     
     st.write(feature_contrib_df.astype(str))
 
+    xgboost_contribution_describe = feature_contrib_df.describe()
+    xgboost_contribution_describe.to_csv("logistic_contribution_describe.csv")
+
     # Show the XGBoost feature contribution plot
     st.markdown("<h3 style='font-size:24px; color:black;'>XGBoost contribution plot</h3>", unsafe_allow_html=True)
 
