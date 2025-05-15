@@ -723,7 +723,7 @@ class PassDescription_xgboost(Description):
             
             pass_description = (
                 f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
-                f"{sentences.describe_xT_pass_1(xT,xG)}"
+                f"{sentences.describe_xT_pass(xT,xG)}"
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
 

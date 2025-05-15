@@ -912,12 +912,6 @@ class Passes(Data):
         self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
         self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
 
-
-        
-
-        
-
-
     def get_data(self, match_id=None):
         self.df_pass = pd.read_csv("data/df_passes.csv")
         self.df_tracking = pd.read_csv("data/tracking.csv")
