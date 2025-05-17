@@ -1183,7 +1183,7 @@ def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_na
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
     # Extract the contributions from the pass_contributions
-    contributions = contributions_xNN.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
+    contributions = contributions_xNN.iloc[0].drop(['id', 'xT_predicted'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
     sorted_contributions = contributions.abs().sort_values(ascending=False)

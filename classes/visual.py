@@ -1126,49 +1126,27 @@ class PassContributionPlot_Xnn(xnn_plot):
 
 class Distributionplot_xnn_models(Visual):
     def __init__(self, columns, labels=None, annotate=True, row_distance=1.0, *args, **kwargs):
-        self.empty = True
         self.columns = columns
         self.annotate = annotate
         self.row_distance = row_distance
-        self.marker_color = (
-            c for c in [Visual.dark_green, Visual.bright_yellow, Visual.bright_blue]
-        )
+        self.marker_color = (c for c in [Visual.dark_green, Visual.bright_yellow, Visual.bright_blue])
         self.marker_shape = (s for s in ["square", "hexagon", "diamond"])
         super().__init__(*args, **kwargs)
-        if labels is not None:
-            self._setup_axes(labels)
-        else:
-            self._setup_axes()
-
-    def _get_x_range(self):
-        """
-        Determine the minimum and maximum x-values across all traces in the figure.
-        """
-        x_values = []
-        for trace in self.fig.data:
-            if 'x' in trace:  # Check if the trace has x-values
-                x_values.extend(trace['x'])  # Append all x-values from the trace
-
-        # Return the min and max, or use defaults if no data is present
-        #return (min(x_values) if x_values else -7, max(x_values) if x_values else 7)
-        return (-1,1)
 
 
-    def _setup_axes(self, labels=["Negative", "Average Contribution to xT", "Positive"]):
-
-        x_min, x_max = self._get_x_range()  # Function to calculate min and max x values
+    def finalize_axes(self, labels=["Negative", "Average Contribution to xT", "Positive"],x_min=-1, x_max=1):
         dynamic_width = max(100, (x_max - x_min) * 100)
 
         self.fig.update_layout(
             autosize=False,
-            width=dynamic_width,  # Set figure width dynamically
-            margin=dict(l=10, r=10, t=10, b=10),  # Minimize margins
-    )
+            width=dynamic_width,
+            margin=dict(l=10, r=10, t=10, b=10),
+        )
         self.fig.update_xaxes(
             range=[x_min, x_max],
             fixedrange=True,
             tickmode="array",
-            tickvals=[(x_min + x_max) / 2 - 3, (x_min + x_max) / 2, (x_min + x_max) / 2 + 3],
+            tickvals=[x_min, 0, x_max],  # Centered around 0
             ticktext=labels,
         )
         self.fig.update_yaxes(
@@ -1180,34 +1158,34 @@ class Distributionplot_xnn_models(Visual):
             zeroline = False
         )
 
-        lines = []
-        for i in range(len(self.columns)):
-            lines.append(dict(
-                type="line",
-                x0=x_min, x1=x_max,
-                y0=i*self.row_distance, y1=i*self.row_distance,
-                xref="x", yref="y",
-                line=dict(color=rgb_to_color(self.medium_green), width=1)
-            ))
-        self.fig.update_layout(shapes=lines)
+    def draw_reference_lines(self, df_plot, plots_suffix, x_min, x_max):
+        for i, col in enumerate(self.columns):
+            data_col = col + plots_suffix
+            # only draw if there’s at least one real value
+            if data_col in df_plot.columns and df_plot[data_col].notna().any():
+                y_val = i * self.row_distance
+                self.fig.add_shape(
+                    type="line",
+                    x0=x_min, x1=x_max,
+                    y0=y_val, y1=y_val,
+                    line=dict(color="gray", width=1),
+                    xref="x", yref="y",
+                )
 
     def add_group_data(self, df_plot, plots, names, legend, hover="", hover_string=""):
         showlegend = True
-
         for i, col in enumerate(self.columns):
-            temp_hover_string = hover_string
-            metric_name = format_metric(col)
-
+            y_val = i * self.row_distance
             self.fig.add_trace(
                 go.Scatter(
                     x=df_plot[col + plots],
-                    y=np.ones(len(df_plot)) * i,
+                    y=np.ones(len(df_plot)) * y_val,
                     mode="markers",
                     marker={
                         "color": rgb_to_color(self.bright_green, opacity=0.2),
                         "size": 10,
                     },
-                    hovertemplate="%{text}<br>" + temp_hover_string + "<extra></extra>",
+                    hovertemplate="%{text}<br>" + hover_string + "<extra></extra>",
                     text=names,
                     customdata=df_plot[col + hover],
                     name=legend,
@@ -1216,9 +1194,7 @@ class Distributionplot_xnn_models(Visual):
             )
             showlegend = False
 
-    def add_data_point(
-        self, ser_plot, plots, name, hover="", hover_string="", text=None
-    ):
+    def add_data_point(self, ser_plot, plots, name, hover="", hover_string="", text=None):
         if text is None:
             text = [name]
         elif isinstance(text, str):
@@ -1228,12 +1204,7 @@ class Distributionplot_xnn_models(Visual):
         marker = next(self.marker_shape)
 
         for i, col in enumerate(self.columns):
-            temp_hover_string = hover_string
-
-            metric_name = format_metric(col)
-
             y_pos = i * self.row_distance
-
             self.fig.add_trace(
                 go.Scatter(
                     x=[ser_plot[col + plots]],
@@ -1246,7 +1217,7 @@ class Distributionplot_xnn_models(Visual):
                         "line_width": 1.5,
                         "line_color": rgb_to_color(color),
                     },
-                    hovertemplate="%{text}<br>" + temp_hover_string + "<extra></extra>",
+                    hovertemplate="%{text}<br>" + hover_string + "<extra></extra>",
                     text=text,
                     customdata=[ser_plot[col + hover]],
                     name=name,
@@ -1255,18 +1226,14 @@ class Distributionplot_xnn_models(Visual):
             )
             legend = False
 
-            # Add annotations only if the flag is enabled
             if self.annotate:
-
                 self.fig.add_annotation(
-                    x=ser_plot[col + plots],
-                    y= y_pos,
-                    xanchor="center",
-                    yanchor="bottom",
+                    x=0,
+                    y=y_pos + 0.4,
                     # text=self.annotation_text.format(
-                    #     metric_name=metric_name, data=ser_plot[col]
+                    #     metric_name=format_metric(col), data=ser_plot[col]
                     # ),
-                    text=f"{format_metric(col)}: {ser_plot[col]:.8f}",
+                    text=f"{format_metric(col)} : {ser_plot[col]:.8f}",
                     showarrow=False,
                     font={
                         "color": rgb_to_color(self.dark_green),
@@ -1275,30 +1242,32 @@ class Distributionplot_xnn_models(Visual):
                     },
                 )
 
-class model_contribution_xnn_shap(Distributionplot_xnn_models):
-    def __init__(self, shap_df_xnn, pass_df_xnn, metrics_shap, **kwargs):
-        self.shap_df_xnn = shap_df_xnn
+
+class model_contribution_xnn(Distributionplot_xnn_models):
+    def __init__(self,xnn_models_contrib, pass_df_xnn, metrics_model, **kwargs):
+        self.xnn_models_contrib = xnn_models_contrib
         self.pass_df_xnn = pass_df_xnn
-        self.metrics_shap = metrics_shap
+        self.metrics_model = metrics_model
  # Validate inputs
-        for metric in metrics_shap:
-            if metric not in shap_df_xnn.columns:
+        for metric in metrics_model:
+            if metric not in xnn_models_contrib.columns:
                 raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
 
-        super().__init__(columns=metrics_shap, annotate=False, **kwargs)  
+        super().__init__(columns=metrics_model, annotate=True, **kwargs)  
 
-    def add_pass(self, shap_df_xnn, pass_df_xnn, pass_id, metrics_shap, selected_pass_id):
+    def add_pass(self, xnn_models_contrib, pass_df_xnn, pass_id, metrics_model, selected_pass_id):
         # Filter contributions and features for the selected pass
-        filtered_contrib_xnn = shap_df_xnn[shap_df_xnn["id"] == pass_id]
-        filtered_pass_xnn = pass_df_xnn[pass_df_xnn["id"] == pass_id]
+        filtered_contrib_xnn = xnn_models_contrib[xnn_models_contrib["id"] == selected_pass_id]
+        filtered_pass_xnn = pass_df_xnn[pass_df_xnn["id"] == selected_pass_id]
+        
 
         if filtered_contrib_xnn.empty or filtered_pass_xnn.empty:
             raise ValueError(f"Pass ID {pass_id} not found.")
         if len(filtered_contrib_xnn) > 1 or len(filtered_pass_xnn) > 1:
             raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
 
-        contributions = filtered_contrib_xnn.iloc[0][metrics_shap]
-        feature_columns = [metric.replace("_contribution", "") for metric in metrics_shap]
+        contributions = filtered_contrib_xnn.iloc[0][metrics_model]
+        feature_columns = [metric.replace("_contrib", "") for metric in metrics_model]
         feature_values = filtered_pass_xnn.iloc[0][feature_columns]
 
         # Construct hover text
@@ -1316,6 +1285,15 @@ class model_contribution_xnn_shap(Distributionplot_xnn_models):
             hover_string="<br>".join(hover_text)
         )
 
+        # --- Dynamic Scaling ---
+        all_contributions = pd.concat([self.xnn_models_contrib[self.metrics_model], contributions.to_frame().T])
+
+        min_val = float(all_contributions.min().min())
+        max_val = float(all_contributions.max().max())
+        buffer = 0.25 * max(abs(min_val), abs(max_val))
+
+        x_min = -(max(abs(min_val), abs(max_val)) + buffer)
+        x_max = (max(abs(min_val), abs(max_val)) + buffer)
         # # Annotate features
         # for i, (metric, feature_column) in enumerate(zip(metrics_shap, feature_columns)):
         #     feature_value = feature_values[feature_column]
@@ -1338,31 +1316,39 @@ class model_contribution_xnn_shap(Distributionplot_xnn_models):
         #     )
 
 
-
-    def add_passes(self,pass_df_xnn, metrics_shap, selected_pass_id):
+        self.draw_reference_lines(
+        df_plot        = filtered_contrib_xnn,  # or `filtered_contrib_xnn` if you only want to test that subset
+        plots_suffix   = "",                       # the string you append to each column name ("" if your contrib columns are exactly the metric names)
+        x_min          = x_min,
+        x_max          = x_max
+        )
+        self.finalize_axes(x_min=x_min, x_max=x_max)
+    
+    def add_passes(self,pass_df_xnn,metrics_model,pass_id):
         hover_texts = []
 
-        for _, row in self.shap_df_xnn.iterrows():
+        for _, row in self.xnn_models_contrib.iterrows():
             hover_text = []
             pass_id = row["id"]
             #pass_number = selected_pass_id
             hover_text.append(f"Pass #{pass_id}")
-            pass_features = pass_df_xnn[pass_df_xnn["id"] == pass_id]
+            pass_features = self.pass_df_xnn[pass_df_xnn["id"] == pass_id]
             if not pass_features.empty:
                 pass_features = pass_features.iloc[0]
 
-                for metric in metrics_shap:
-                    feature_column = metric.replace("_contribution", "")
-                    if feature_column in pass_features:
-                        value = pass_features[feature_column]
-                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+                for metric in metrics_model:
+                    feature_columns = metric.replace("_contrib", "")
+                    if feature_columns in pass_features.index:
+                        value = pass_features[feature_columns]
+                        hover_text.append(f"{format_metric(feature_columns)}: {value:.2f}")
             else:
                 hover_text.append("No matching pass data")
 
             hover_texts.append("<br>".join(hover_text))
+        
 
         self.add_group_data(
-            df_plot=self.shap_df_xnn,
+            df_plot=self.xnn_models_contrib,
             plots="",
             names=hover_texts,
             hover="",

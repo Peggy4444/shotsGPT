@@ -839,7 +839,14 @@ class Passes(Data):
         #initializing for xNN model
         drop_cols_xNN = ['possession_xG_target','speed_difference', 'end_distance_to_sideline_contribution','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution','end_angle_to_goal_contribution', 'pressure_on_passer_contribution','xT']
         self.pass_df_xNN = self.df_pass.drop(columns=[col for col in drop_cols_xNN if col in self.df_pass.columns])
-        self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition)
+        new_cols = {
+                "h1": "pressure based",
+                "h2": "speed based",
+                "h3": "position based",
+                "h4": "event based"
+            }
+        self.pass_df_xNN.rename(columns=new_cols, inplace=True)
+        self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition) 
         self.model_contribution_xNN = self.get_model_contributions_xNN(self.pass_df_xNN,competition)
 
         #load pressure based model
@@ -1490,30 +1497,36 @@ class Passes(Data):
         scaler = self.load_scaler()
         if model is None or scaler is None:
             return None
-
-        # Prepare 
-        features_xNN = ['h1','h2','h3','h4']
-        X_h = pass_df_xNN[features_xNN]
-        X_scaled = scaler.transform(X_h)
-
-        # SHAP explanation
-        def model_predict(x_np):
-            x_tensor = torch.tensor(x_np, dtype=torch.float32)
-            with torch.no_grad():
-                return model(x_tensor).numpy()
-
-        # Use SHAP with the scaled input but keep original feature names
-        explainer = shap.Explainer(model_predict, X_scaled)
-        shap_vals = explainer(X_scaled)
-
-        # SHAP array and feature names
-        shap_array_xnn = shap_vals.values  # shape: (n_samples, n_h_features)
-        h_names = X_h.columns.tolist()
-
-        shap_df_xnn = pd.DataFrame(shap_array_xnn, columns=h_names)
-        shap_df_xnn.insert(0, 'id', pass_df_xNN['id'].values)
         
-        return shap_df_xnn
+        features_xNN = ['pressure based','speed based','position based','event based']
+        xnn_df = pass_df_xNN[features_xNN]
+        X_h = pass_df_xNN[features_xNN]
+        
+        X_scaled = scaler.transform(X_h)
+        X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
+
+        # Predict xT
+        with torch.no_grad():
+            logits = model(X_tensor)
+            xT_probs = torch.sigmoid(logits).numpy().flatten()
+        
+        #features_xNN = ['h1','h2','h3','h4']
+        gamma_weights = model.model[0].weight.detach().numpy()        # (16, 4)
+        final_weights = model.model[2].weight.detach().numpy().flatten()  # (16,)
+        # Effective γ values from each h_k to output
+        effective_gamma = final_weights @ gamma_weights  # (4,)
+
+        # Add contributions to DataFrame
+        for i, h_col in enumerate(['pressure based', 'speed based', 'position based','event based']):
+            xnn_df[f"{h_col}"] -= xnn_df[f"{h_col}"].mean()
+            xnn_df[f"{h_col}_contrib"] = xnn_df[f"{h_col}"] * effective_gamma[i]
+        xnn_contribution = xnn_df[['pressure based_contrib','speed based_contrib',
+       'position based_contrib','event based_contrib']]
+        
+        xnn_contribution.insert(0, 'id', pass_df_xNN['id'].values)
+        xnn_contribution.insert(1, "xT_predicted", xT_probs)
+        
+        return xnn_contribution
 
 
     def get_feature_contributions_xNN(self,pass_df_xNN,competition):
@@ -1524,7 +1537,14 @@ class Passes(Data):
             return None
 
         # Prepare data
-        X_h = pass_df_xNN[['h1', 'h2', 'h3', 'h4']]
+        df_features_contrib = pass_df_xNN[['start_distance_to_goal', 'end_distance_to_goal', 'pass_length',
+       'pass_angle', 'start_angle_to_goal', 'end_angle_to_goal',
+       'start_distance_to_sideline', 'end_distance_to_sideline','teammates_behind',
+       'teammates_beyond', 'opponents_beyond', 'opponents_behind',
+       'opponents_between', 'packing', 'pressure_on_passer',
+       'average_speed_of_teammates', 'average_speed_of_opponents',
+       'opponents_nearby', 'teammates_nearby']]
+        X_h = pass_df_xNN[['pressure based', 'speed based', 'position based', 'event based']]
         X_scaled = scaler.transform(X_h)
         X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
 
@@ -1533,19 +1553,6 @@ class Passes(Data):
             logits = model(X_tensor)
             xT_probs = torch.sigmoid(logits).numpy().flatten()
 
-        # SHAP explanation
-        def model_predict(x_np):
-            x_tensor = torch.tensor(x_np, dtype=torch.float32)
-            with torch.no_grad():
-                return model(x_tensor).numpy()
-
-        # Use SHAP with the scaled input but keep original feature names
-        explainer = shap.Explainer(model_predict, X_scaled, feature_names=X_h.columns.tolist())
-        shap_vals = explainer(X_scaled)
-
-        # SHAP array and feature names
-        shap_array = shap_vals.values  # shape: (n_samples, n_h_features)
-        h_names = X_h.columns.tolist()
 
         # Load logistic coefficients from multiple sources
         logistic_dfs = [
@@ -1555,35 +1562,30 @@ class Passes(Data):
             self.read_event_model_params(competition)
         ]
 
-        logistic_coeffs = {}
-        for i, df in enumerate(logistic_dfs):
-            h_key = f"h{i+1}"
-            if df is not None:
-                feature_col, coef_col = df.columns[:2]
-                logistic_coeffs[h_key] = dict(zip(df[feature_col], df[coef_col]))
+        logistic_coeffs = {
+        h: dict(zip(df.iloc[:, 0], df.iloc[:, 1]))
+            for h, df in zip(X_h, logistic_dfs)
+            }
 
-        # Aggregate base feature contributions
-        all_base_feats = set()
-        for coeff_dict in logistic_coeffs.values():
-            all_base_feats.update(coeff_dict.keys())
-        all_base_feats = sorted(list(all_base_feats))
-        base_contrib_matrix = pd.DataFrame(0, index=pass_df_xNN.index, columns=all_base_feats)
+        #gamma_weights = model.model[0].weight.detach().cpu().numpy().flatten()
+        gamma_weights = model.model[0].weight.detach().numpy()        # (16, 4)
+        final_weights = model.model[2].weight.detach().numpy().flatten()  # (16,)
+        # Effective γ values from each h_k to output
+        effective_gamma = final_weights @ gamma_weights  # (4,)
 
-        for i, h in enumerate(h_names):
-            if h not in logistic_coeffs:
-                continue
-            h_shap_col = shap_array[:, i]
-            coeffs = logistic_coeffs[h] 
-            
-            for feat, coef in coeffs.items():
-                base_contrib_matrix[feat] = coef * h_shap_col
+        for i, h in enumerate(X_h):
+            beta_dict = logistic_coeffs[h]
+            γ = effective_gamma[i]
+            for feature, β in beta_dict.items():
+                if feature in df_features_contrib.columns:
+                    df_features_contrib[feature] = df_features_contrib[feature] * β * γ
+                    df_features_contrib[feature] -= df_features_contrib[feature].mean()
 
         # Add IDs and xT prediction to result
-        base_contrib_matrix.insert(0, "xT_predicted", xT_probs)
-        base_contrib_matrix.insert(0, "match_id", pass_df_xNN["match_id"].values)
-        base_contrib_matrix.insert(0, "id", pass_df_xNN["id"].values)
+        df_features_contrib.insert(1, "xT_predicted", xT_probs)
+        df_features_contrib.insert(0, "id", pass_df_xNN["id"].values)
 
-        return base_contrib_matrix
+        return df_features_contrib
 
     
     def load_xgboost_model(self,competition):
