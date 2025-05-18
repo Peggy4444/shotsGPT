@@ -2880,7 +2880,192 @@ class PitchVisual(Visual):
         self.add_title(title, subtitle)
         self.add_low_center_annotation(f"Compared to other {player.detailed_position.lower()}s")
 
+###
 
+class PassContributionPlot_TabNet(DistributionPlot):
+    def __init__(self, feature_contrib_tabnet, pass_df_tabnet, metrics, **kwargs):
+        self.feature_contrib_tabnet = feature_contrib_tabnet
+        self.pass_df_tabnet = pass_df_tabnet
+        self.metrics = metrics
+
+        
+
+        # Validate inputs
+        for metric in metrics:
+            if metric not in feature_contrib_tabnet.columns:
+                raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
+
+        super().__init__(columns=metrics, annotate=False, **kwargs)  
+
+    def add_pass(self, feature_contrib_tabnet, pass_df_tabnet, pass_id, metrics, selected_pass_id):
+        # Filter contributions and features for the selected pass
+        filtered_contrib = feature_contrib_tabnet[feature_contrib_tabnet["id"] == pass_id]
+        filtered_pass = pass_df_tabnet[pass_df_tabnet["id"] == pass_id]
+
+        if filtered_contrib.empty or filtered_pass.empty:
+            raise ValueError(f"Pass ID {pass_id} not found.")
+        if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+            raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+        contributions = filtered_contrib.iloc[0][metrics]
+        feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+        feature_values = filtered_pass.iloc[0][feature_columns]
+
+        # Construct hover text
+        hover_text = [f"Pass ID: {selected_pass_id}"]
+        for feature_column in feature_columns:
+            feature_value = feature_values[feature_column]
+            hover_text.append(f"{format_metric(feature_column)}: {feature_value:.2f}")
+
+        # Add contributions to the plot
+        self.add_data_point(
+            ser_plot=contributions,
+            plots="",
+            name=f"Pass #{selected_pass_id}",
+            hover="",
+            hover_string="<br>".join(hover_text)
+        )
+
+        # Annotate features
+        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+            feature_value = feature_values[feature_column]
+            self.fig.add_annotation(
+                x=contributions[metric],
+                #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
+
+                y=i * 1.0 + 0.5,
+                xanchor="center",
+                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+                showarrow=False,
+                font={
+                "color": rgb_to_color(self.dark_green),
+                "family": "Gilroy-Light",
+                "size": 11 * self.font_size_multiplier,
+                },
+            align="center",
+            )
+
+
+
+    def add_passes(self, feature_contrib_tabnet, pass_df_tabnet, metrics, selected_pass_id):
+        hover_texts = []
+
+        for _, row in self.feature_contrib_tabnet.iterrows():
+            hover_text = []
+            pass_id = row["id"]
+            pass_number = selected_pass_id
+            #hover_text.append(f"Pass #{pass_number}")
+            pass_features = pass_df_tabnet[pass_df_tabnet["id"] == pass_id]
+            if not pass_features.empty:
+                pass_features = pass_features.iloc[0]
+
+                for metric in metrics:
+                    feature_column = metric.replace("_contribution", "")
+                    if feature_column in pass_features:
+                        value = pass_features[feature_column]
+                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+            else:
+                hover_text.append("No matching pass data")
+
+            hover_texts.append("<br>".join(hover_text))
+
+        self.add_group_data(
+            df_plot=self.feature_contrib_tabnet,
+            plots="",
+            names=hover_texts,
+            hover="",
+            hover_string="",
+            legend="All Passes",
+        )
+
+    
+        # Validate inputs
+        for metric in metrics:
+            if metric not in feature_contrib_tabnet.columns:
+                raise ValueError(f"Metric '{metric}' is not a column in df_contributions.")
+
+        super().__init__(columns=metrics, annotate=False, **kwargs)  
+
+    def add_pass(self, feature_contrib_tabnet, pass_df_tabnet, pass_id, metrics, selected_pass_id):
+        # Filter contributions and features for the selected pass
+        filtered_contrib = feature_contrib_tabnet[feature_contrib_tabnet["id"] == pass_id]
+        filtered_pass = pass_df_tabnet[pass_df_tabnet["id"] == pass_id]
+
+        if filtered_contrib.empty or filtered_pass.empty:
+            raise ValueError(f"Pass ID {pass_id} not found.")
+        if len(filtered_contrib) > 1 or len(filtered_pass) > 1:
+            raise ValueError(f"Multiple rows found for Pass ID {pass_id}.")
+
+        contributions = filtered_contrib.iloc[0][metrics]
+        feature_columns = [metric.replace("_contribution", "") for metric in metrics]
+        feature_values = filtered_pass.iloc[0][feature_columns]
+
+        # Construct hover text
+        hover_text = [f"Pass ID: {selected_pass_id}"]
+        for feature_column in feature_columns:
+            feature_value = feature_values[feature_column]
+            hover_text.append(f"{format_metric(feature_column)}: {feature_value:.2f}")
+
+        # Add contributions to the plot
+        self.add_data_point(
+            ser_plot=contributions,
+            plots="",
+            name=f"Pass #{selected_pass_id}",
+            hover="",
+            hover_string="<br>".join(hover_text)
+        )
+
+        # Annotate features
+        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+            feature_value = feature_values[feature_column]
+            self.fig.add_annotation(
+                x=contributions[metric],
+                #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
+
+                y=i * 1.0 + 0.5,
+                xanchor="center",
+                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+                showarrow=False,
+                font={
+                "color": rgb_to_color(self.dark_green),
+                "family": "Gilroy-Light",
+                "size": 11 * self.font_size_multiplier,
+                },
+            align="center",
+            )
+
+
+
+    def add_passes(self, pass_df_tabnet, metrics, selected_pass_id):
+        hover_texts = []
+
+        for _, row in self.feature_contrib_tabnet.iterrows():
+            hover_text = []
+            pass_id = row["id"]
+            pass_number = selected_pass_id
+            #hover_text.append(f"Pass #{pass_number}")
+            pass_features = pass_df_tabnet[pass_df_tabnet["id"] == pass_id]
+            if not pass_features.empty:
+                pass_features = pass_features.iloc[0]
+
+                for metric in metrics:
+                    feature_column = metric.replace("_contribution", "")
+                    if feature_column in pass_features:
+                        value = pass_features[feature_column]
+                        hover_text.append(f"{format_metric(feature_column)}: {value:.2f}")
+            else:
+                hover_text.append("No matching pass data")
+
+            hover_texts.append("<br>".join(hover_text))
+
+        self.add_group_data(
+            df_plot=self.feature_contrib_tabnet,
+            plots="",
+            names=hover_texts,
+            hover="",
+            hover_string="",
+            legend="All Passes",
+        )
 
 
 

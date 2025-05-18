@@ -42,7 +42,7 @@ from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassC
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position,DistributionPlot_position_model,DistributionPlot_speed_models,DistributionPlot_logistic
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
 from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost,PassContributionPlot_TabNet
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
 from classes.chat import Chat
 #from classes.data_source import show_mimic_tree_in_streamlit
@@ -113,7 +113,7 @@ selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id
 pass_id = selected_pass_id
 
 # Define the tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "CNN", "Regression trees"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "TabNet", "Regression trees"])
 
 # Sample content
 with tab1:
@@ -378,10 +378,42 @@ with tab3:
     chat.display_messages()
 
 with tab4:
-    st.header("CNN")
-    pass_df_cnn = pass_df.drop(['speed_difference'],axis=1)
-    st.write(pass_df_cnn.astype(str))
+    st.header("TabNet")
+    pass_df_tabnet = pass_df.drop(['speed_difference'],axis=1)
+    st.write(pass_df_tabnet.astype(str))
+
+
+
+    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from TabNet model</h3>", unsafe_allow_html=True)
+    feature_contrib_tabnet = pass_data.contributions_tabnet
+    st.write(feature_contrib_tabnet.astype(str))
+
+        # Define which features to plot (exclude non-feature columns)
+    excluded_columns = ['Predicted_Probability', 'id', 'match_id']
+    metrics = [col for col in feature_contrib_tabnet.columns if col not in excluded_columns]
+
+        # Build and show the contribution plot
+    st.markdown("<h3 style='font-size:18px; color:black;'>TabNet contribution plot</h3>", unsafe_allow_html=True)
+
+    visuals_tabnet = PassContributionPlot_TabNet(feature_contrib_tabnet=feature_contrib_tabnet, pass_df_tabnet=pass_df_tabnet, metrics=metrics)
+    visuals_tabnet.add_passes(pass_df_tabnet, metrics, selected_pass_id=selected_pass_id)
+    visuals_tabnet.add_pass(feature_contrib_tabnet=feature_contrib_tabnet, pass_df_tabnet=pass_df_tabnet,
+                                pass_id=selected_pass_id, metrics=metrics, selected_pass_id=selected_pass_id)
+    visuals_tabnet.show()
+
+
     #model = Passes.load_model(selected_competition, show_summary=False)
+    #  Show predicted xT value
+
+    # Show predicted xT value from TabNet
+    xt_value_tabnet = feature_contrib_tabnet[feature_contrib_tabnet['id'] == pass_id]['Predicted_Probability']
+    xt_value_tabnet = xt_value_tabnet.iloc[0] if not xt_value_tabnet.empty else "N/A"
+
+    #  Pitch visual
+    visuals = PassVisual(metric=None)
+    visuals.add_pass(pass_data, pass_id, home_team_color="green", away_team_color="red")
+    visuals.show()
+
 
 
     

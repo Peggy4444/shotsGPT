@@ -41,6 +41,7 @@ from utils.utils import SimplerNet
 
 #from dtreeviz.trees import dtreeviz
 import streamlit.components.v1 as components
+from pytorch_tabnet.tab_model import TabNetClassifier
 
 
 
@@ -849,6 +850,70 @@ class Passes(Data):
         self.contributions_xNN = self.get_feature_contributions_xNN(self.pass_df_xNN,competition) 
         self.model_contribution_xNN = self.get_model_contributions_xNN(self.pass_df_xNN,competition)
 
+        # initializing for TabNet model
+        drop_cols_tabnet = ['possession_xG_target','speed_difference','start_distance_to_goal_contribution', 'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution', 'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution', 'start_distance_to_sideline_contribution', 'teammates_beyond_contribution', 'opponents_beyond_contribution', 'teammates_nearby_contribution', 'opponents_between_contribution', 'opponents_nearby_contribution', 'speed_difference_contribution', 'xT']
+        self.pass_df_tabnet = self.df_pass.drop(columns=[col for col in drop_cols_tabnet if col in self.df_pass.columns])
+        self.tabnet_model = self.load_tabnet_model(competition)
+        self.scaler = self.load_scaler_tabnet()
+        self.contributions_tabnet = self.get_feature_contributions_tabnet(self.pass_df_tabnet,self.tabnet_model,self.scaler)
+#         # self.contributions_tabnet = self.get_feature_contributions_tabnet(self.pass_df_tabnet, self.tabnet_model, self.scaler)
+
+
+#         self.pass_df_tabnet = self.df_pass.drop(columns=[col for col in drop_cols_tabnet if col in self.df_pass.columns])
+#         self.tabnet_model = self.load_tabnet_model(competition)
+#         self.scaler = self.load_scaler_tabnet()
+
+
+
+#                 # Initial feature list
+#         feature_cols = list(self.pass_df_tabnet.columns)
+
+#         # Filter to numeric only
+#         feature_cols = [col for col in feature_cols if pd.api.types.is_numeric_dtype(self.pass_df_tabnet[col])]
+
+#         # Call function
+#         self.contributions_tabnet = self.get_feature_contributions_tabnet(
+#             self.pass_df_tabnet,
+#             self.tabnet_model,
+#             self.scaler,
+#             feature_cols
+# )
+
+
+
+
+        # # Initializing for TabNet model
+        # drop_cols_tabnet = [
+        #     'possession_xG_target', 'speed_difference', 'start_distance_to_goal_contribution',
+        #     'packing_contribution', 'pass_angle_contribution', 'pass_length_contribution',
+        #     'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution',
+        #     'start_distance_to_sideline_contribution', 'teammates_beyond_contribution',
+        #     'opponents_beyond_contribution', 'teammates_nearby_contribution',
+        #     'opponents_between_contribution', 'opponents_nearby_contribution',
+        #     'speed_difference_contribution', 'xT'
+        # ]
+        # self.pass_df_tabnet = self.df_pass.drop(columns=[col for col in drop_cols_tabnet if col in self.df_pass.columns])
+        # self.tabnet_model = self.load_tabnet_model(competition)
+        # self.scaler = self.load_scaler_tabnet()
+
+        # # Load training feature names from saved artifact
+        # import pickle
+        # with open("data/feature_names.pkl", "rb") as f:
+        #     feature_cols = pickle.load(f)
+
+        # # Verify feature count
+        # if len(feature_cols) != 19:
+        #     raise ValueError(f"Loaded feature_names.pkl contains {len(feature_cols)} features, expected 19")
+
+        # # Call function
+        # self.contributions_tabnet = self.get_feature_contributions_tabnet(
+        #     self.pass_df_tabnet,
+        #     self.tabnet_model,
+        #     self.scaler,
+        #     feature_cols
+        # )
+                
+        
         #load pressure based model
         self.pressure_df = (self.df_pass.loc[:, ["id","pressure_on_passer","opponents_nearby","teammates_nearby","packing"]]
             .copy())        
@@ -1755,8 +1820,455 @@ class Passes(Data):
         core_cols = ["id", "match_id", "leaf_id", "leaf_intercept", "mimic_xT"]
         contrib_cols = [f"{f}_contribution_mimic" for f in feature_names]
         return pd.DataFrame(rows)[core_cols + contrib_cols]
+    
+    #loading TabNet model
 
-        
+    def load_tabnet_model(self, competition):
+            competitions_dict = {
+                "Allsevenskan 2022": "data/tabnet_model.zip",
+                "Allsevenskan 2023": "data/tabnet_model.zip"
+            }
+            
+            network_path = competitions_dict.get(competition)
+
+            if not network_path or not os.path.exists(network_path):
+                st.error(f"Network file not found at: {network_path}")
+                return None
+
+            try:
+                # Initialize model with same parameters used during training
+                model = TabNetClassifier(
+                    n_d=16,
+                    n_a=16,
+                    n_steps=5,
+                    gamma=1.5,
+                    lambda_sparse=1e-3,
+                    mask_type="entmax"
+                )
+                
+                # Load the saved model
+                model.load_model(network_path)
+                model.network.eval()  # Corrected: Use model.network.eval()
+
+                st.success("TabNet model loaded successfully!")
+                return model
+
+            except Exception as e:
+                st.error(f"Failed to load TabNet model: {e}")
+                return None
+    
+    def load_scaler_tabnet(self):
+        scaler_path_tabnet = "data/scaler_tabnet.pkl"
+        if not os.path.exists(scaler_path_tabnet):
+            st.error(f"Scaler file not found at: {scaler_path_tabnet}")
+            return None
+        try:
+            with open(scaler_path_tabnet, "rb") as f:
+                scaler = pickle.load(f)
+            st.success("Scaler loaded successfully!")
+            return scaler
+        except Exception as e:
+            st.error(f"Failed to load scaler: {e}")
+            return None
+    def load_feature_names(self):
+            feature_names_path = "data/feature_names.pkl"
+            if not os.path.exists(feature_names_path):
+                st.error(f"Feature names file not found at: {feature_names_path}")
+                return None
+            try:
+                with open(feature_names_path, "rb") as f:
+                    feature_names = pickle.load(f)
+                st.success("Feature names loaded successfully!")
+                return feature_names
+            except Exception as e:
+                st.error(f"Failed to load feature names: {e}")
+                return None        
+
+
+    # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
+    #     # Validate inputs first
+    #     if pass_df_tabnet is None or pass_df_tabnet.empty:
+    #         raise ValueError("Input DataFrame is empty or None")
+    #     if tabnet_model is None:
+    #         raise ValueError("TabNet model is not loaded")
+    #     if scaler is None:
+    #         raise ValueError("Scaler is not loaded")
+
+    #     try:
+    #         # Get feature names
+    #         feature_cols = self.load_feature_names()
+    #         if not feature_cols:
+    #             raise ValueError("Failed to load feature names")
+
+    #         # Validate DataFrame columns
+    #         missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+    #         if missing_features:
+    #             raise ValueError(f"Missing required features: {missing_features}")
+
+    #         # Preprocess data
+    #         X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+    #         X_scaled = scaler.transform(X)
+            
+    #         # Convert to tensor
+    #         X_tensor = torch.tensor(X_scaled, dtype=torch.float32, requires_grad=True)
+
+    #         # Calculate gradients
+    #         tabnet_model.network.eval()
+    #         with torch.set_grad_enabled(True):
+    #             output = tabnet_model.network(X_tensor)[0][:, 1]
+    #             output.sum().backward()
+    #             gradients = X_tensor.grad.detach().numpy()
+
+    #         # Calculate contributions
+    #         gradient_input = gradients * X_scaled
+
+    #         # Create results DataFrame
+    #         contributions_df = pd.DataFrame(gradient_input, columns=feature_cols)
+    #         contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+    #         contributions_df['Predicted_Probability'] = output.detach().numpy()
+
+    #         return contributions_df
+
+    #     except Exception as e:
+    #         st.error(f"Feature contribution error: {str(e)}")
+    #         raise RuntimeError(f"Feature calculation failed: {e}") from e        
+    #    ##working^^^^
+
+    # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
+    #     import torch
+    #     import numpy as np
+    #     import pandas as pd
+    #     import shap
+
+    #     # Validate inputs
+    #     if pass_df_tabnet is None or pass_df_tabnet.empty:
+    #         raise ValueError("Input DataFrame is empty or None")
+    #     if tabnet_model is None:
+    #         raise ValueError("TabNet model is not loaded")
+    #     if scaler is None:
+    #         raise ValueError("Scaler is not loaded")
+
+    #     try:
+    #         # Load and validate feature names
+    #         feature_cols = self.load_feature_names()
+    #         if not feature_cols:
+    #             raise ValueError("Failed to load feature names")
+
+    #         missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+    #         if missing_features:
+    #             raise ValueError(f"Missing required features: {missing_features}")
+
+    #         # Preprocess input
+    #         X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+    #         X_scaled = scaler.transform(X)
+
+    #         # Convert to tensor
+    #         X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
+
+    #         # Set model to eval mode
+    #         tabnet_model.network.eval()
+
+    #         # Initialize SHAP GradientExplainer
+    #         explainer = shap.GradientExplainer(tabnet_model.network, X_tensor)
+
+    #         # Compute SHAP values (feature contributions)
+    #         # Use a subset if dataset is large to reduce computation time
+    #         shap_values = explainer.shap_values(X_tensor, nsamples=100)  # nsamples controls approximation
+
+    #         # Extract SHAP values for the positive class (class 1)
+    #         # TabNet outputs [M_explain, output], we assume output[:, 1] is the positive class
+    #         shap_values_class1 = shap_values[0][:, :, 1]  # Shape: (n_samples, n_features)
+
+    #         # Get predicted probabilities
+    #         with torch.no_grad():
+    #             output = tabnet_model.network(X_tensor)[0][:, 1].numpy()
+
+    #         # Prepare output DataFrame
+    #         contributions_df = pd.DataFrame(shap_values_class1, columns=feature_cols)
+    #         contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+    #         contributions_df['Predicted_Probability'] = output
+
+    #         return contributions_df
+
+    #     except Exception as e:
+    #         import streamlit as st
+    #         st.error(f"Feature contribution error: {str(e)}")
+    #         raise RuntimeError(f"Feature calculation failed: {e}") from e
+
+##### SHAP^^
+    def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
+        import torch
+        import numpy as np
+        import pandas as pd
+        from captum.attr import IntegratedGradients
+
+        if pass_df_tabnet is None or pass_df_tabnet.empty:
+            raise ValueError("Input DataFrame is empty or None")
+        if tabnet_model is None:
+            raise ValueError("TabNet model is not loaded")
+        if scaler is None:
+            raise ValueError("Scaler is not loaded")
+
+        try:
+            feature_cols = self.load_feature_names()
+            if not feature_cols:
+                raise ValueError("Failed to load feature names")
+
+            missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+            if missing_features:
+                raise ValueError(f"Missing required features: {missing_features}")
+
+            # Preprocess input
+            X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+            X_scaled = scaler.transform(X)
+            X_tensor = torch.tensor(X_scaled, dtype=torch.float32, requires_grad=True)
+
+            # ✅ Use the internal PyTorch model directly
+            model = tabnet_model.network
+            model.eval()
+
+            # ✅ Define the forward function for Captum using torch model
+            def forward_func(inputs):
+                logits, _ = model(inputs)
+                probs = torch.softmax(logits, dim=1)
+                return probs[:, 1]  # return positive class probability
+
+            # Integrated Gradients
+            ig = IntegratedGradients(forward_func)
+            baseline = torch.zeros_like(X_tensor)
+
+            attributions, delta = ig.attribute(
+                X_tensor,
+                baselines=baseline,
+                n_steps=50,
+                return_convergence_delta=True
+            )
+
+            attributions = attributions.detach().numpy()
+            y_pred_proba = tabnet_model.predict_proba(X_scaled)[:, 1]
+
+            if attributions.shape[0] != y_pred_proba.shape[0]:
+                raise ValueError(f"Mismatch between attributions ({attributions.shape[0]}) and output ({y_pred_proba.shape[0]})")
+
+            contributions_df = pd.DataFrame(attributions, columns=feature_cols)
+            contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+            contributions_df['Predicted_Probability'] = y_pred_proba
+
+            if np.any(np.abs(delta.detach().numpy()) > 1e-3):
+                print("⚠️ Convergence delta is high, results may be approximate.")
+
+            return contributions_df
+
+        except Exception as e:
+            import streamlit as st
+            st.error(f"Feature contribution error: {str(e)}")
+            raise RuntimeError(f"Feature calculation failed: {e}") from e
+
+
+###working ^^^
+
+
+    # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler, feature_cols):
+    #     import numpy as np
+    #     import pandas as pd
+    #     from lime.lime_tabular import LimeTabularExplainer
+
+    #     # Step 1: Input validation
+    #     if pass_df_tabnet is None or pass_df_tabnet.empty:
+    #         raise ValueError("Input DataFrame is empty or None")
+    #     if tabnet_model is None:
+    #         raise ValueError("TabNet model is not loaded")
+    #     if scaler is None:
+    #         raise ValueError("Scaler is not loaded")
+    #     if not feature_cols:
+    #         raise ValueError("Feature column list is empty")
+
+    #     # Expected number of features (from training)
+    #     expected_features = 19  # From training code
+    #     if hasattr(scaler, 'n_features_in_'):
+    #         if scaler.n_features_in_ != expected_features:
+    #             raise ValueError(f"Scaler expects {scaler.n_features_in_} features, but training expects {expected_features}")
+
+    #     # Debugging: Print feature counts and columns
+    #     print(f"Expected features: {expected_features}")
+    #     print(f"Provided feature_cols ({len(feature_cols)}): {feature_cols}")
+    #     print(f"DataFrame columns ({len(pass_df_tabnet.columns)}): {pass_df_tabnet.columns.tolist()}")
+
+    #     # Validate feature count
+    #     if len(feature_cols) != expected_features:
+    #         raise ValueError(f"Feature count mismatch: Provided {len(feature_cols)} features, but scaler expects {expected_features}")
+
+    #     # Step 2: Prepare clean input data
+    #     if not all(col in pass_df_tabnet.columns for col in feature_cols):
+    #         missing_cols = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+    #         raise ValueError(f"Some feature columns are missing in pass_df_tabnet: {missing_cols}")
+    #     X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+
+    #     # Step 3: Define prediction function
+    #     def predict_proba_fn(x):
+    #         x = np.array(x, dtype=np.float32)
+    #         if x.shape[1] != len(feature_cols):
+    #             raise ValueError(f"Input shape mismatch: Expected {len(feature_cols)} features, got {x.shape[1]}")
+    #         x_scaled = scaler.transform(x)
+    #         return tabnet_model.predict_proba(x_scaled)
+
+    #     # Step 4: Initialize LIME explainer
+    #     explainer = LimeTabularExplainer(
+    #         training_data=X,
+    #         mode="classification",
+    #         feature_names=feature_cols,
+    #         discretize_continuous=True,
+    #         verbose=False,
+    #         random_state=42
+    #     )
+
+    #     # Step 5: Run LIME on each sample
+    #     all_contributions = []
+    #     all_probabilities = []
+
+    #     for i in range(X.shape[0]):
+    #         exp = explainer.explain_instance(X[i], predict_proba_fn, num_features=len(feature_cols))
+    #         contrib_dict = dict(exp.as_list())
+    #         contrib_row = [contrib_dict.get(f, 0.0) for f in feature_cols]
+    #         all_contributions.append(contrib_row)
+
+    #         # Get probability of class 1
+    #         x_i = X[i].reshape(1, -1)
+    #         pred_prob = predict_proba_fn(x_i)[0][1]
+    #         all_probabilities.append(pred_prob)
+
+    #     # Step 6: Assemble results
+    #     contributions_df = pd.DataFrame(all_contributions, columns=feature_cols)
+
+    #     if 'id' in pass_df_tabnet.columns:
+    #         contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+
+    #     contributions_df['Predicted_Probability'] = all_probabilities
+    #     contributions_df['Sum_Contribution'] = contributions_df[feature_cols].sum(axis=1)
+
+    #     return contributions_df
+
+    
+
+#new approch
+
+
+
+    # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
+    #         # Validate inputs first
+    #         if pass_df_tabnet is None or pass_df_tabnet.empty:
+    #             raise ValueError("Input DataFrame is empty or None")
+    #         if tabnet_model is None:
+    #             raise ValueError("TabNet model is not loaded")
+    #         if scaler is None:
+    #             raise ValueError("Scaler is not loaded")
+
+    #         try:
+    #             # Get feature names
+    #             feature_cols = self.load_feature_names()
+    #             if not feature_cols:
+    #                 raise ValueError("Failed to load feature names")
+
+    #             # Validate DataFrame columns
+    #             missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+    #             if missing_features:
+    #                 raise ValueError(f"Missing required features: {missing_features}")
+
+    #             # Preprocess data
+    #             X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+    #             X_scaled = scaler.transform(X)
+    #             print(f"Shape of X_scaled: {X_scaled.shape}")
+
+    #             # Convert to tensor
+    #             X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
+
+    #             # Get attention masks
+    #             tabnet_model.eval()
+    #             _, masks = tabnet_model.explain(X_tensor)  # Shape: (n_samples, n_features, n_steps)
+    #             mask_weights = np.mean(masks, axis=2)  # Shape: (n_samples, n_features)
+    #             print(f"Shape of mask_weights: {mask_weights.shape}")
+
+    #             # Compute baseline predictions
+    #             with torch.no_grad():
+    #                 predicted_probs = tabnet_model.predict_proba(X_scaled)[:, 1]  # Probability for class 1
+    #             print(f"Shape of predicted_probs: {predicted_probs.shape}")
+
+    #             # Initialize signed contributions
+    #             signed_contributions = np.zeros_like(X_scaled)
+
+    #             # Perturbation parameters
+    #             perturbation_scale = 0.05  # Perturb by ±5% of feature range
+    #             feature_ranges = np.ptp(X, axis=0)  # Range of original (unscaled) features
+    #             top_n_features = 5  # Perturb only top 5 features per sample based on attention
+
+    #             for sample_idx in range(X.shape[0]):
+    #                 # Select top N features with highest attention for this sample
+    #                 attention_scores = mask_weights[sample_idx]
+    #                 top_features = np.argsort(attention_scores)[-top_n_features:]
+
+    #                 for feature_idx in top_features:
+    #                     # Create positive and negative perturbations
+    #                     X_pos = X_scaled.copy()
+    #                     X_neg = X_scaled.copy()
+    #                     perturbation = perturbation_scale * feature_ranges[feature_idx]
+    #                     perturbation_scaled = perturbation / scaler.scale_[feature_idx]
+    #                     X_pos[sample_idx, feature_idx] += perturbation_scaled
+    #                     X_neg[sample_idx, feature_idx] -= perturbation_scaled
+
+    #                     # Compute perturbed predictions
+    #                     with torch.no_grad():
+    #                         pos_probs = tabnet_model.predict_proba(X_pos)[sample_idx, 1]
+    #                         neg_probs = tabnet_model.predict_proba(X_neg)[sample_idx, 1]
+
+    #                     # Calculate signed contribution
+    #                     contribution = (pos_probs - neg_probs) / (2 * perturbation_scaled)
+    #                     signed_contributions[sample_idx, feature_idx] = contribution
+
+    #             # Weight contributions by attention masks
+    #             weighted_contributions = signed_contributions * mask_weights
+    #             print(f"Shape of weighted_contributions: {weighted_contributions.shape}")
+
+    #             # Normalize contributions for interpretability
+    #             max_abs = np.abs(weighted_contributions).max(axis=1, keepdims=True)
+    #             max_abs[max_abs == 0] = 1  # Avoid division by zero
+    #             weighted_contributions = weighted_contributions / max_abs
+
+    #             # Create results DataFrame
+    #             contributions_df = pd.DataFrame(weighted_contributions, columns=feature_cols)
+
+    #             # Add ID column safely
+    #             if 'id' in pass_df_tabnet.columns:
+    #                 contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+    #             else:
+    #                 print("⚠️ Warning: 'id' column missing in input data.")
+
+    #             # Add predicted probability
+    #             contributions_df['Predicted_Probability'] = predicted_probs
+
+    #             # Final debug: ensure column exists
+    #             if 'Predicted_Probability' not in contributions_df.columns:
+    #                 print("❌ Predicted_Probability column not found in final DataFrame.")
+    #             else:
+    #                 print("✅ Predicted_Probability column added successfully.")
+
+    #             return contributions_df
+
+    #         except Exception as e:
+    #             st.error(f"Feature contribution error: {str(e)}")
+    #             raise RuntimeError(f"Feature calculation failed: {e}") from e
+
+    # Other methods like load_scaler_tabnet, load_feature_names, load_tabnet_model...
+
+
+
+
+
+
+
+
+##saba^^
+##----------------------------------------------------##
+
 
     # def weight_contributions_mimic(self,pass_df_mimic,tree,leaf_models,feature_names,leaf_feature_means):
     # # Load mimic model parts
