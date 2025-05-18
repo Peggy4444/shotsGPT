@@ -917,29 +917,23 @@ class Passes(Data):
         #load pressure based model
         self.pressure_df = (self.df_pass.loc[:, ["id","pressure_on_passer","opponents_nearby","teammates_nearby","packing"]]
             .copy())        
-        # self.parameters_pressure = self.read_pressure_model_params(competition)
-        # self.df_contributions_pressure = self.contributions_logistic_pressure(self.pressure_df,self.pass_df_xNN)
         self.df_contributions_pressure = self.contributions_xNN[["id","pressure_on_passer","opponents_nearby","teammates_nearby","packing"]]
 
 
         #load speed based model
         self.speed_df = (self.df_pass.loc[:, ["id","match_id","average_speed_of_teammates","average_speed_of_opponents"]]
             .copy())        
-        self.parameters_speed = self.read_speed_model_params(competition)
-        self.df_contributions_speed = self.contributions_logistic_speed(self.speed_df,self.pass_df_xNN)
+        self.df_contributions_speed = self.contributions_xNN[["id","average_speed_of_teammates","average_speed_of_opponents"]]
 
         #position based model
         self.position_df = (self.df_pass.loc[:, ["id","match_id","teammates_behind","teammates_beyond","opponents_behind","opponents_beyond","opponents_between"]]
             .copy())        
-        self.parameters_position = self.read_position_model_params(competition)
-        self.df_contributions_position = self.contributions_logistic_position(self.position_df,self.pass_df_xNN)
+        self.df_contributions_position = self.contributions_xNN[["id","teammates_behind","teammates_beyond","opponents_behind","opponents_beyond","opponents_between"]]
 
         #event based model
         self.event_df = (self.df_pass.loc[:, ["id","match_id","start_distance_to_goal","end_distance_to_goal","start_distance_to_sideline","end_distance_to_sideline","start_angle_to_goal","end_angle_to_goal","pass_angle","pass_length"]]
             .copy())        
-        self.parameters_event = self.read_event_model_params(competition)
-        self.df_contributions_event = self.contributions_logistic_event(self.event_df,self.pass_df_xNN)
-
+        self.df_contributions_event = self.contributions_xNN[["id","start_distance_to_goal","end_distance_to_goal","start_distance_to_sideline","end_distance_to_sideline","start_angle_to_goal","end_angle_to_goal","pass_angle","pass_length"]]
         #self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
         #self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
 
@@ -1301,10 +1295,6 @@ class Passes(Data):
             return None
                     
 
-    
-
-        
-    
     @staticmethod
     def load_pressure_model(competition, show_summary=False):
 
@@ -1455,108 +1445,6 @@ class Passes(Data):
             st.error(f"Error loading scaler: {e}")
             return None
     
-    ## contribution pressure based logistic models
-    def contributions_logistic_pressure(self, pressure_df, pass_df_xnn):
-        
-        df = pressure_df.copy()
-
-        #pre‐loaded params
-        params = self.parameters_pressure
-
-        #compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        #the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-
-
-    ### contribution for speed based model
-    def contributions_logistic_speed(self,speed_df,pass_df_xnn):
-        df = speed_df.copy()
-
-        # 2) grab your pre‐loaded params
-        params = self.parameters_speed
-
-        # 3) compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        # 4) pick out just the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-    
-    #contribution of position based 
-    def contributions_logistic_position(self,position_df,pass_df_xnn):
-        df = position_df.copy()
-
-        # 2) grab your pre‐loaded params
-        params = self.parameters_position
-
-        # 3) compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        # 4) pick out just the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-
-    ## contributions of event based model 
-    def contributions_logistic_event(self,event_df,pass_df_xnn):
-        df = event_df.copy()
-
-        # 2) grab your pre‐loaded params
-        params = self.parameters_event
-
-        # 3) compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        # 4) pick out just the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-
     ## contributions of xNN input
     def get_model_contributions_xNN(self,pass_df_xNN,competition):
         # Load model and scaler

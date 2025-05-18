@@ -623,12 +623,8 @@ class PassDescription_xNN(Description):
                 f"{sentences.describe_xT_pass_xNN(xT,xG)}"
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
-
-            pass_description += '\n' + sentences.describe_models_xNN(pressure,speed,position,event)
             
             pass_description += '\n' + sentences.describe_pass_contributions_xNN(contributions, pass_features)
-
-            
 
             with st.expander("Synthesized Text"):
                 st.write(pass_description)

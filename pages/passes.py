@@ -38,8 +38,8 @@ from utils.utils import SimplerNet
 
 #from classes.visual import PassVisual_logistic as PassVisual
 from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn,Distributionplot_xnn_pressure
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position,DistributionPlot_position_model,DistributionPlot_speed_models,DistributionPlot_logistic
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn,PassContributionPlot_Logistic_position
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost,PassContributionPlot_TabNet
@@ -191,11 +191,6 @@ with tab2:
     event_df = pass_data.event_df
 
     ## selection xnn feature contribution of 4 models and per feature
-
-    xNN_contribution_describe = df_xnn_contrib.describe()
-    xnn_models_contrib_describe = xnn_models_contrib.describe()
-    xnn_models_contrib_describe.to_csv("xnn_models_contrib_describe.csv")
-
     st.markdown("<h3 style='font-size:18px; color:black;'>contribution from xNN model</h3>", unsafe_allow_html=True)
 
     contribution_xNN = {
@@ -213,13 +208,8 @@ with tab2:
 
    # Build and show plot
     st.markdown("<h3 style='font-size:18px; color:black;'>Xnn contribution plot</h3>", unsafe_allow_html=True)
-    # visuals_Xnn = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
-    # visuals_Xnn.add_passes(df_passes_xnn,metrics)
-    # visuals_Xnn.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
-    # visuals_Xnn.show()
 
-    #xNN input contribution plot
-    #metrics_shap = [c for c in df_xnn_contrib.columns if c != "id"] 
+    #xNN submodels contribution plot
     model_xnn_cols = ['id','xT_predicted']
     metrics_model = [c for c in xnn_models_contrib.columns if c not in model_xnn_cols]
     visuals_xNN_model = model_contribution_xnn(xnn_models_contrib, df_passes_xnn, metrics_model)
@@ -228,6 +218,7 @@ with tab2:
     visuals_xNN_model.add_pass(xnn_models_contrib, df_passes_xnn, selected_pass_id, metrics_model, selected_pass_id)
     plot_model_cobtribution = visuals_xNN_model.fig
     
+    # xNN per feature contribution plot
     visuals_Xnn_feature = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
     visuals_Xnn_feature.add_passes(df_passes_xnn,metrics)
     visuals_Xnn_feature.annotate = True
@@ -244,47 +235,50 @@ with tab2:
 
 
     #pressure based model contribution plot
-    # pressure_cols = ['id']
-    # metrics_pressure = [col for col in contrib_pressure.columns if col not in pressure_cols]
-    # visuals_Xnn_Pressure = PassContributionPlot_Logistic_pressure(contrib_pressure,pressure_df,metrics_pressure)
-    # visuals_Xnn_Pressure.add_passes(contrib_pressure,metrics_pressure,selected_pass_id=selected_pass_id)
-    # visuals_Xnn_Pressure.annotate = True
-    # visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
-    # plot_contribution_pressure = visuals_Xnn_Pressure.fig 
+    pressure_cols = ['id']
+    metrics_pressure = [col for col in contrib_pressure.columns if col not in pressure_cols]
+    visuals_Xnn_Pressure = PassContributionPlot_Logistic_pressure(contrib_pressure,pressure_df,metrics_pressure)
+    visuals_Xnn_Pressure.add_passes(contrib_pressure,metrics_pressure,selected_pass_id=selected_pass_id)
+    visuals_Xnn_Pressure.annotate = True
+    visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
+    plot_contribution_pressure = visuals_Xnn_Pressure.fig 
 
 
     # #Speed based model contribution plot
-    # metrics_speed = [col for col in contrib_speed.columns if col not in excluded_columns]
-    # visuals_Xnn_speed = PassContributionPlot_Logistic_speed(contrib_speed,speed_df,metrics_speed)
-    # visuals_Xnn_speed.add_passes(speed_df,metrics_speed,selected_pass_id=selected_pass_id)
-    # visuals_Xnn_speed.annotate = True
-    # visuals_Xnn_speed.add_pass(contrib_speed,speed_df, pass_id=selected_pass_id, metrics=metrics_speed, selected_pass_id = selected_pass_id)
-    # plot_contribution_speed = visuals_Xnn_speed.fig 
+    speed_cols = ['id']
+    metrics_speed = [col for col in contrib_speed.columns if col not in speed_cols]
+    visuals_Xnn_speed = PassContributionPlot_Logistic_speed(contrib_speed,speed_df,metrics_speed)
+    visuals_Xnn_speed.add_passes(speed_df,metrics_speed,selected_pass_id=selected_pass_id)
+    visuals_Xnn_speed.annotate = True
+    visuals_Xnn_speed.add_pass(contrib_speed,speed_df, pass_id=selected_pass_id, metrics=metrics_speed, selected_pass_id = selected_pass_id)
+    plot_contribution_speed = visuals_Xnn_speed.fig 
 
 
-    # #position based model contribution plot
-    # metrics_position = [col for col in contrib_position.columns if col not in excluded_columns]
-    # visuals_Xnn_position = PassContributionPlot_Logistic_position(contrib_position,position_df,metrics_position)
-    # visuals_Xnn_position.add_passes(position_df,metrics_position,pass_id)
-    # visuals_Xnn_position.annotate=True
-    # visuals_Xnn_position.add_pass(contrib_position,position_df, pass_id, metrics_position, selected_pass_id = selected_pass_id)
-    # plot_contribution_position = visuals_Xnn_position.fig 
+    #position based model contribution plot
+    position_cols = ['id']
+    metrics_position = [col for col in contrib_position.columns if col not in position_cols]
+    visuals_Xnn_position = PassContributionPlot_Logistic_position(contrib_position,position_df,metrics_position)
+    visuals_Xnn_position.add_passes(position_df,metrics_position,pass_id)
+    visuals_Xnn_position.annotate=True
+    visuals_Xnn_position.add_pass(contrib_position,position_df, pass_id, metrics_position, selected_pass_id = selected_pass_id)
+    plot_contribution_position = visuals_Xnn_position.fig 
 
     # #event based model contribution plot
-    # metrics_event = [col for col in contrib_event.columns if col not in excluded_columns]
-    # visuals_Xnn_event = PassContributionPlot_Logistic_event(contrib_event,event_df,metrics_event)
-    # visuals_Xnn_event.add_passes(event_df,metrics_event,selected_pass_id=selected_pass_id)
-    # visuals_Xnn_event.annotate=True
-    # visuals_Xnn_event.add_pass(contrib_event,event_df, pass_id=selected_pass_id, metrics=metrics_event, selected_pass_id = selected_pass_id)
-    # plot_contribution_event = visuals_Xnn_event.fig 
+    event_cols = ['id']
+    metrics_event = [col for col in contrib_event.columns if col not in event_cols]
+    visuals_Xnn_event = PassContributionPlot_Logistic_event(contrib_event,event_df,metrics_event)
+    visuals_Xnn_event.add_passes(event_df,metrics_event,selected_pass_id=selected_pass_id)
+    visuals_Xnn_event.annotate=True
+    visuals_Xnn_event.add_pass(contrib_event,event_df, pass_id=selected_pass_id, metrics=metrics_event, selected_pass_id = selected_pass_id)
+    plot_contribution_event = visuals_Xnn_event.fig 
 
     plots = {
     "XNN per Feature Contribution": plot_contribution,
     "XNN feature-based Models Contribution": plot_model_cobtribution,
     "H1:Pressure Based model" : plot_contribution_pressure,
-    #"H2:Speed Based model" : plot_contribution_speed,
-    #"H3:position based model" : plot_contribution_position,
-    #"H4:event based model" : plot_contribution_event
+    "H2:Speed Based model" : plot_contribution_speed,
+    "H3:position based model" : plot_contribution_position,
+    "H4:event based model" : plot_contribution_event
     }
     selected_contribution_plot = st.selectbox("Select a plot:", options=list(plots.keys()),index=0)
     placeholder = st.empty()
