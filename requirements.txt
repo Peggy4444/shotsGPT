@@ -19,3 +19,4 @@ shap == 0.47.1
 torch
 toml
 pytorch-tabnet
+captum
