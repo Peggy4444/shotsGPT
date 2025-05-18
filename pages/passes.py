@@ -129,8 +129,7 @@ with tab1:
     df_contributions = pass_data.df_contributions
     st.write(df_contributions.astype(str))
 
-    logistic_contribution_describe = df_contributions.describe()
-    logistic_contribution_describe.to_csv("logistic_contribution_describe.csv")
+    #logistic_contribution_describe = df_contributions.describe()
 
     excluded_columns = ['xT','id', 'match_id']
     metrics = [col for col in df_contributions.columns if col not in excluded_columns]
@@ -229,22 +228,19 @@ with tab2:
     visuals_xNN_model.add_pass(xnn_models_contrib, df_passes_xnn, selected_pass_id, metrics_model, selected_pass_id)
     plot_model_cobtribution = visuals_xNN_model.fig
     
-    # all feature contribution plot
-    #print(shap_df_xnn.columns.tolist())
-
     visuals_Xnn_feature = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
     visuals_Xnn_feature.add_passes(df_passes_xnn,metrics)
     visuals_Xnn_feature.annotate = True
     visuals_Xnn_feature.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
     plot_contribution = visuals_Xnn_feature.fig
 
-    # #pressure based model contribution plot
-    # metrics_pressure = [col for col in contrib_pressure.columns if col not in excluded_columns]
-    # visuals_Xnn_Pressure = PassContributionPlot_Logistic_pressure(contrib_pressure,pressure_df,metrics_pressure)
-    # visuals_Xnn_Pressure.add_passes(pressure_df,metrics_pressure,selected_pass_id=selected_pass_id)
-    # visuals_Xnn_Pressure.annotate = True
-    # visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id=selected_pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
-    # plot_contribution_pressure = visuals_Xnn_Pressure.fig 
+    #pressure based model contribution plot
+    metrics_pressure = [col for col in contrib_pressure.columns if col not in excluded_columns]
+    visuals_Xnn_Pressure = PassContributionPlot_Logistic_pressure(contrib_pressure,pressure_df,metrics_pressure)
+    visuals_Xnn_Pressure.add_passes(pressure_df,metrics_pressure,selected_pass_id=selected_pass_id)
+    visuals_Xnn_Pressure.annotate = True
+    visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id=selected_pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
+    plot_contribution_pressure = visuals_Xnn_Pressure.fig 
 
 
     #pressure based model contribution plot
@@ -285,7 +281,7 @@ with tab2:
     plots = {
     "XNN per Feature Contribution": plot_contribution,
     "XNN feature-based Models Contribution": plot_model_cobtribution,
-    # "H1:Pressure Based model" : plot_contribution_pressure,
+    "H1:Pressure Based model" : plot_contribution_pressure,
     #"H2:Speed Based model" : plot_contribution_speed,
     #"H3:position based model" : plot_contribution_position,
     #"H4:event based model" : plot_contribution_event
@@ -338,8 +334,8 @@ with tab3:
     
     st.write(feature_contrib_df.astype(str))
 
-    xgboost_contribution_describe = feature_contrib_df.describe()
-    xgboost_contribution_describe.to_csv("xgboost_contribution_describe.csv")
+    #xgboost_contribution_describe = feature_contrib_df.describe()
+    #xgboost_contribution_describe.to_csv("xgboost_contribution_describe.csv")
 
     # Show the XGBoost feature contribution plot
     st.markdown("<h3 style='font-size:24px; color:black;'>XGBoost contribution plot</h3>", unsafe_allow_html=True)
