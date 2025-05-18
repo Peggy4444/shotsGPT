@@ -16,6 +16,8 @@ import utils.constants as const
 
 
 
+
+
 def hex_to_rgb(hex_color: str) -> tuple:
     hex_color = hex_color.lstrip("#")
     if len(hex_color) == 3:
@@ -2303,6 +2305,38 @@ class PassContributionPlot_XGBoost(DistributionPlot):
             hover_string="",
             legend="All Passes",
         )
+
+class CounterfactualContributionPlot_XGBoost:
+    def __init__(self, shap_df_long):
+        self.df = shap_df_long.sort_values("shap_value", key=abs, ascending=True)  # sort by abs SHAP
+
+    def plot(self, title="XGBoost SHAP Contributions for Counterfactual Pass"):
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=self.df["shap_value"],
+            y=self.df["feature"],
+            orientation="h",
+            marker_color="green",
+            text=[f"{v:.2f}" for v in self.df["feature_value"]],
+            textposition="auto",
+            hovertemplate=
+                "<b>%{y}</b><br>" +
+                "SHAP Value: %{x:.4f}<br>" +
+                "Feature Value: %{text}<extra></extra>",
+            name="Counterfactual"
+        ))
+
+        fig.update_layout(
+            title=title,
+            xaxis_title="SHAP Value (Impact on xT)",
+            yaxis_title="Feature",
+            height=600,
+            template="plotly_white"
+        )
+
+        return fig    
+
 
 class PassContributionPlot_Mimic(DistributionPlot):
     def __init__(self, df_contributions_mimic, df_passes, metrics, **kwargs):

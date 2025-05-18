@@ -38,6 +38,8 @@ import xgboost as xgb
 import joblib
 from utils.utils import SimplerNet
 #from dtreeviz import dtreeviz
+import dice_ml
+from dice_ml import Dice
 
 #from dtreeviz.trees import dtreeviz
 import streamlit.components.v1 as components
@@ -1642,6 +1644,100 @@ class Passes(Data):
         shap_df = shap_df[ordered_cols]
 
         return shap_df 
+    
+    def generate_pass_counterfactuals_by_id(self,
+    selected_pass_id,
+    pass_df_xgboost,
+    xGB_model,
+    threshold: float = 0.5,
+    total_CFs: int = 5
+    
+):
+    
+
+        # Check ID is valid
+        if selected_pass_id not in pass_df_xgboost["id"].values:
+            raise ValueError(f"pass_id {selected_pass_id} not found in dataframe.")
+
+        # Find row index
+        query_index = pass_df_xgboost[pass_df_xgboost["id"] == selected_pass_id].index[0]
+
+        # Select feature columns
+        feature_cols = [col for col in pass_df_xgboost.columns if col not in [
+        'id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
+        'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y',
+        'pressure level passer', 'forward pass', 'backward pass', 'lateral pass',
+        'season', 'pass_recipient_id', 'passer_name', 'receiver_name',
+        'team_name', 'possession_xg', 'possession_goal']]
+
+        X = pass_df_xgboost[feature_cols]
+        y = self.df_pass.loc[pass_df_xgboost.index, 'possession_xG_target']
+
+        # Select the instance to explain
+        query_instance = X.iloc[[query_index]]
+        pred_prob = xGB_model.predict_proba(query_instance)[0][1]
+        print(f"[DEBUG] Predicted xT for pass {selected_pass_id}: {pred_prob}")
+
+        # ✅ EARLY EXIT before doing anything with DiCE
+        if pred_prob > threshold:
+            return pd.DataFrame(), pred_prob
+
+        # ✅ Now safe to create DiCE objects
+        data_dice = dice_ml.Data(
+        dataframe=pd.concat([X, y], axis=1),
+        continuous_features=feature_cols,
+        outcome_name='possession_xG_target')
+        model_dice = dice_ml.Model(model=xGB_model, backend="sklearn")
+        exp = Dice(data_dice, model_dice)
+
+        # Generate counterfactuals
+        #cf = exp.generate_counterfactuals(query_instance, total_CFs=total_CFs, desired_class=1)
+
+        try:
+            cf = exp.generate_counterfactuals(query_instance, total_CFs=1, desired_class=1)
+            df_attempted = cf.cf_examples_list[0].final_cfs_df
+
+            if df_attempted.empty:
+                print(f"[DEBUG] DiCE ran but returned no valid counterfactuals.")
+            else:
+                print("[DEBUG] Raw counterfactual explanation:")
+                print(cf.visualize_as_dataframe())
+
+        except Exception as e:
+            print(f"[WARNING] DiCE failed to generate counterfactuals: {e}")
+            return pd.DataFrame(), pred_prob, pd.DataFrame()
+
+
+        cf_df = cf.cf_examples_list[0].final_cfs_df[feature_cols]
+        cf_df["predicted_prob"] = xGB_model.predict_proba(cf_df)[:, 1]
+        print(cf_df[["predicted_prob"]])
+
+        #print(f"Generated {len(cf_df)} counterfactuals, kept {len(filtered_cf)} after threshold filtering.")
+
+
+        filtered_cf = cf_df[cf_df["predicted_prob"] > threshold].reset_index(drop=True)
+
+                # ✅ SHAP for counterfactual (only if one exists)
+        shap_df_cf = pd.DataFrame()
+        if not filtered_cf.empty:
+            cf_instance = filtered_cf.iloc[[0]][feature_cols]
+            explainer = shap.Explainer(xGB_model, X)
+            shap_values_cf = explainer(cf_instance)
+            shap_df_cf = pd.DataFrame([shap_values_cf.values[0]], columns=feature_cols)
+            
+
+
+        # Add metadata
+        filtered_cf["pass_id"] = str(selected_pass_id)
+        filtered_cf["type"] = "counterfactual"
+        original_with_id = query_instance.copy()
+        original_with_id["predicted_prob"] = pred_prob
+        original_with_id["pass_id"] = str(selected_pass_id)
+        original_with_id["type"] = "original"
+
+        result_df = pd.concat([original_with_id, filtered_cf], ignore_index=True)
+        return result_df, pred_prob, shap_df_cf
+
     
     # def load_mimic_tree(self):
     #     try:
