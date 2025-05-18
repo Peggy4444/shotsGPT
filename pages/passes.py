@@ -38,7 +38,7 @@ from utils.utils import SimplerNet
 
 #from classes.visual import PassVisual_logistic as PassVisual
 from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn,Distributionplot_xnn_pressure
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position,DistributionPlot_position_model,DistributionPlot_speed_models,DistributionPlot_logistic
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
 from classes.data_source import Passes
@@ -194,6 +194,9 @@ with tab2:
     ## selection xnn feature contribution of 4 models and per feature
 
     xNN_contribution_describe = df_xnn_contrib.describe()
+    xnn_models_contrib_describe = xnn_models_contrib.describe()
+    xnn_models_contrib_describe.to_csv("xnn_models_contrib_describe.csv")
+
     st.markdown("<h3 style='font-size:18px; color:black;'>contribution from xNN model</h3>", unsafe_allow_html=True)
 
     contribution_xNN = {
@@ -243,6 +246,17 @@ with tab2:
     # visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id=selected_pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
     # plot_contribution_pressure = visuals_Xnn_Pressure.fig 
 
+
+    #pressure based model contribution plot
+    # pressure_cols = ['id']
+    # metrics_pressure = [col for col in contrib_pressure.columns if col not in pressure_cols]
+    # visuals_Xnn_Pressure = PassContributionPlot_Logistic_pressure(contrib_pressure,pressure_df,metrics_pressure)
+    # visuals_Xnn_Pressure.add_passes(contrib_pressure,metrics_pressure,selected_pass_id=selected_pass_id)
+    # visuals_Xnn_Pressure.annotate = True
+    # visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
+    # plot_contribution_pressure = visuals_Xnn_Pressure.fig 
+
+
     # #Speed based model contribution plot
     # metrics_speed = [col for col in contrib_speed.columns if col not in excluded_columns]
     # visuals_Xnn_speed = PassContributionPlot_Logistic_speed(contrib_speed,speed_df,metrics_speed)
@@ -271,7 +285,7 @@ with tab2:
     plots = {
     "XNN per Feature Contribution": plot_contribution,
     "XNN feature-based Models Contribution": plot_model_cobtribution,
-    #"H1:Pressure Based model" : plot_contribution_pressure,
+    # "H1:Pressure Based model" : plot_contribution_pressure,
     #"H2:Speed Based model" : plot_contribution_speed,
     #"H3:position based model" : plot_contribution_position,
     #"H4:event based model" : plot_contribution_event
@@ -294,7 +308,7 @@ with tab2:
     xt_value = df_xnn_contrib[df_xnn_contrib['id'] == pass_id]['xT_predicted']
     xt_value = xt_value.iloc[0] if not xt_value.empty else "N/A"
  
-    descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,pass_id, selected_competition)
+    descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,xnn_models_contrib,pass_id,selected_competition)
 
     to_hash = ("xNN",selected_match_id, pass_id)
     summaries = descriptions.stream_gpt()

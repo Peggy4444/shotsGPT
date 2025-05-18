@@ -850,10 +850,12 @@ class Passes(Data):
         self.model_contribution_xNN = self.get_model_contributions_xNN(self.pass_df_xNN,competition)
 
         #load pressure based model
-        self.pressure_df = (self.df_pass.loc[:, ["id","match_id","packing", "pressure_on_passer", "teammates_nearby", "opponents_nearby"]]
+        self.pressure_df = (self.df_pass.loc[:, ["id","pressure_on_passer","opponents_nearby","teammates_nearby","packing"]]
             .copy())        
-        self.parameters_pressure = self.read_pressure_model_params(competition)
-        self.df_contributions_pressure = self.contributions_logistic_pressure(self.pressure_df,self.pass_df_xNN)
+        # self.parameters_pressure = self.read_pressure_model_params(competition)
+        # self.df_contributions_pressure = self.contributions_logistic_pressure(self.pressure_df,self.pass_df_xNN)
+        self.df_contributions_pressure = self.contributions_xNN[["id","pressure_on_passer","opponents_nearby","teammates_nearby","packing"]]
+
 
         #load speed based model
         self.speed_df = (self.df_pass.loc[:, ["id","match_id","average_speed_of_teammates","average_speed_of_opponents"]]
@@ -1582,7 +1584,7 @@ class Passes(Data):
                     df_features_contrib[feature] -= df_features_contrib[feature].mean()
 
         # Add IDs and xT prediction to result
-        df_features_contrib.insert(1, "xT_predicted", xT_probs)
+        df_features_contrib.insert(0, "xT_predicted", xT_probs)
         df_features_contrib.insert(0, "id", pass_df_xNN["id"].values)
 
         return df_features_contrib

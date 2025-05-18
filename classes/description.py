@@ -455,6 +455,7 @@ class PassDescription_logistic(Description):
             contributions = pass_data.df_contributions[pass_data.df_contributions['id'] == self.pass_id]
             tracking = pass_data.df_tracking[pass_data.df_tracking['id'] == self.pass_id]
 
+
             if passes.empty:
                 raise ValueError(f"No shot found with ID {self.shot_id}")
             
@@ -545,8 +546,9 @@ class PassDescription_xNN(Description):
             return [f"{self.describe_base}/action/passes.xlsx"]
             #return []
         
-        def __init__(self,pass_data,feature_contrib_df, pass_id, competition):
+        def __init__(self,pass_data,feature_contrib_df,model_contribution_xNN,pass_id,competition):
             self.pass_data = pass_data
+            self.model_contribution_xNN = model_contribution_xNN
             self.feature_contrib_df = feature_contrib_df
             self.pass_id = pass_id
             self.competition = competition
@@ -559,6 +561,7 @@ class PassDescription_xNN(Description):
             passes = pass_data.pass_df_xNN[pass_data.pass_df_xNN['id'] == self.pass_id]  # Fix here to use self.shot_id
             contributions = pass_data.contributions_xNN[pass_data.contributions_xNN['id'] == self.pass_id]
             tracking = pass_data.df_tracking[pass_data.df_tracking['id'] == self.pass_id]
+            models_contribution = pass_data.model_contribution_xNN[pass_data.model_contribution_xNN['id'] == self.pass_id]
 
             if passes.empty:
                 raise ValueError(f"No shot found with ID {self.shot_id}")
@@ -569,7 +572,10 @@ class PassDescription_xNN(Description):
             x = passes['passer_x'].iloc[0]
             y = passes['passer_y'].iloc[0]
             team_direction = tracking['team_direction'].iloc[0]
-            
+            pressure = models_contribution['pressure based_contrib'].iloc[0]
+            speed = models_contribution['speed based_contrib'].iloc[0]
+            position = models_contribution['position based_contrib'].iloc[0]
+            event = models_contribution['event based_contrib'].iloc[0]
 
             #extracting the pass classification values
             forward_pass = passes['forward pass'].iloc[0]
@@ -590,7 +596,6 @@ class PassDescription_xNN(Description):
             pass_features = {'pass_length' : passes['pass_length'].iloc[0]  ,
                             'start_angle_to_goal' : passes['start_angle_to_goal'].iloc[0],
                             'start_distance_to_goal' :passes['start_distance_to_goal'].iloc[0] ,
-                            'opponents_beyond':passes['opponents_beyond'].iloc[0],
                             'opponents_between' : passes['opponents_between'].iloc[0], 
                             'packing' : passes['packing'].iloc[0], 
                             'average_speed_of_teammates' : passes['average_speed_of_teammates'].iloc[0], 
@@ -614,12 +619,16 @@ class PassDescription_xNN(Description):
             feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
             
             pass_description = (
-                f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
+                f"{sentences.describe_models_xNN(pressure,speed,position,event)} The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
                 f"{sentences.describe_xT_pass_xNN(xT,xG)}"
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
 
+            pass_description += '\n' + sentences.describe_models_xNN(pressure,speed,position,event)
+            
             pass_description += '\n' + sentences.describe_pass_contributions_xNN(contributions, pass_features)
+
+            
 
             with st.expander("Synthesized Text"):
                 st.write(pass_description)

@@ -147,6 +147,27 @@ def describe_xT_pass_logistic(xT,xG):
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
     return description
 
+### describe for xNN submodel contribution
+def describe_models_xNN(pressure, speed, position, event):
+    descs = []
+    if pressure <= -0.002399126:
+        descs.append("The pressure‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The pressure‐based model has a **positive** contribution on xT")
+    if speed <= -0.006565724:
+        descs.append("The speed‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The speed‐based model has a **positive** contribution on xT")
+    if position <= -0.00025759:
+        descs.append("The position‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The position‐based model has a **positive** contribution on xT")
+    if event <= -0.005755727:
+        descs.append("The event‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The event‐based model has a **positive** contribution on xT")
+    return "; ".join(descs) + "."
+
 
 ### describe for xNN 
 def describe_xT_pass_xNN(xT,xG):
