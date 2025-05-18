@@ -1850,7 +1850,7 @@ class Passes(Data):
                 model.load_model(network_path)
                 model.network.eval()  # Corrected: Use model.network.eval()
 
-                st.success("TabNet model loaded successfully!")
+                # st.success("TabNet model loaded successfully!")
                 return model
 
             except Exception as e:
@@ -1865,7 +1865,7 @@ class Passes(Data):
         try:
             with open(scaler_path_tabnet, "rb") as f:
                 scaler = pickle.load(f)
-            st.success("Scaler loaded successfully!")
+            # st.success("Scaler loaded successfully!")
             return scaler
         except Exception as e:
             st.error(f"Failed to load scaler: {e}")
@@ -1878,7 +1878,7 @@ class Passes(Data):
             try:
                 with open(feature_names_path, "rb") as f:
                     feature_names = pickle.load(f)
-                st.success("Feature names loaded successfully!")
+                # st.success("Feature names loaded successfully!")
                 return feature_names
             except Exception as e:
                 st.error(f"Failed to load feature names: {e}")
