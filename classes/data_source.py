@@ -1585,8 +1585,8 @@ class Passes(Data):
 
         # Add contributions to DataFrame
         for i, h_col in enumerate(['pressure based', 'speed based', 'position based','event based']):
-            xnn_df[f"{h_col}"] -= xnn_df[f"{h_col}"].mean()
             xnn_df[f"{h_col}_contrib"] = xnn_df[f"{h_col}"] * effective_gamma[i]
+            xnn_df[f"{h_col}_contrib"] -= xnn_df[f"{h_col}_contrib"].mean()
         xnn_contribution = xnn_df[['pressure based_contrib','speed based_contrib',
        'position based_contrib','event based_contrib']]
         
