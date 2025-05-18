@@ -135,8 +135,7 @@ def describe_xT_pass_logistic(xT,xG):
             if xG < 0.066100:
                 description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
             else:
-                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
-            
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass."    
     else:
         if xT <= 0.05882884: #25 percentile
             description = f" The xT value is {xT} and it did not lead to a shot and opportunities to score goal is less."
@@ -146,11 +145,64 @@ def describe_xT_pass_logistic(xT,xG):
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is high."
         else:
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
-        return description
+    return description
+
+### describe for xNN submodel contribution
+def describe_models_xNN_old(pressure, speed, position, event):
+    descs = []
+    if pressure <= -0.002399126:
+        descs.append("The pressure‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The pressure‐based model has a **positive** contribution on xT")
+    if speed <= -0.006565724:
+        descs.append("The speed‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The speed‐based model has a **positive** contribution on xT")
+    if position <= -0.00025759:
+        descs.append("The position‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The position‐based model has a **positive** contribution on xT")
+    if event <= -0.005755727:
+        descs.append("The event‐based model has a **negative** contribution on xT")
+    else:
+        descs.append("The event‐based model has a **positive** contribution on xT")
+    return "; ".join(descs) + "."
+
+
+
+def describe_models_xNN(pressure, speed, position, event):
+    descs = []
+
+    # Pressure-based model (h1)
+    if pressure <= -0.0024:
+        descs.append("The passer was surrounded by pressure, with nearby defenders limiting the threat generated.")
+    else:
+        descs.append("The passer managed to break through pressure, bypassing defenders and adding threat to the play.")
+
+    # Speed-based model (h2)
+    if speed <= -0.0066:
+        descs.append("Movement off the ball was sluggish, which reduced the potential impact of the pass.")
+    else:
+        descs.append("Lively off-ball runs and opposition tracking helped increase the attacking value of the move.")
+
+    # Position-based model (h3)
+    if position <= -0.00026:
+        descs.append("The overall player positioning around the passer was less favorable, limiting forward options.")
+    else:
+        descs.append("Supportive teammate positioning and the spacing of defenders contributed to a more promising setup.")
+
+    # Event-based model (h4)
+    if event <= -0.0058:
+        descs.append("The location, angle, or length of the pass slightly reduced its danger.")
+    else:
+        descs.append("The execution and geometry of the pass — its angle, length, or placement — played a key role in boosting xT.")
+
+    return " ".join(descs)
+
 
 
 ### describe for xNN 
-def describe_xT_pass_xNN(xT,xG):
+def describe_xT_pass_xNN_old(xT,xG):
     if xG != 0:
         if xT <= 0.05178240314126015: #25 percentile xT
             if xG < 0.066100:
@@ -171,8 +223,7 @@ def describe_xT_pass_xNN(xT,xG):
             if xG < 0.066100:
                 description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for safe pass." 
             else:
-                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass." 
-            
+                description = f" It had excellent xT {xT} value and probability of pass being a shot was {xT * 100:.0f}% creating a excellent goal scoring opportunities for dangerous pass."   
     else:
         if xT <= 0.05178240314126015: #25 percentile
             description = f" The xT value is {xT} and it did not lead to a shot and opportunities to score goal is less."
@@ -182,7 +233,45 @@ def describe_xT_pass_xNN(xT,xG):
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is high."
         else:
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
-        return description
+    
+    return description
+
+def describe_xT_pass_xNN(xT, xG):
+    xt_percentile_25 = 0.05178240314126015
+    xt_percentile_50 = 0.06115284748375416
+    xt_percentile_75 = 0.06652335822582245
+    xg_threshold = 0.066100
+
+    xt_label = ""
+    if xT <= xt_percentile_25:
+        xt_label = "low"
+    elif xT <= xt_percentile_50:
+        xt_label = "moderate"
+    elif xT <= xt_percentile_75:
+        xt_label = "high"
+    else:
+        xt_label = "excellent"
+
+    xt_prob = int(xT * 100)
+
+    if xG != 0:
+        if xG < xg_threshold:
+            goal_quality = "a lower-quality shot"
+        else:
+            goal_quality = "a dangerous shot on goal"
+
+        description = (
+            f"With an xT of {xT:.3f}, this pass carried a **{xt_label} threat**, suggesting a {xt_prob}% chance of leading to a shot "
+            f"valued at more than 0.06 xG. It ultimately resulted in {goal_quality}, reflecting its attacking intent."
+        )
+    else:
+        description = (
+            f"Despite an xT of {xT:.3f}, which indicates a **{xt_label} probability** of ending in a quality shot, "
+            f"this pass didn’t lead to an attempt on goal."
+        )
+
+    return description
+
 
 
 def describe_position_pass(x, y, team_direction):
@@ -1180,11 +1269,11 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
     return text
 
 #contribution feature of xNN model
-def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_name_mapping=feature_name_mapping_pass):
+def describe_pass_contributions_xNN_old(contributions_xNN, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
     # Extract the contributions from the pass_contributions
-    contributions = contributions_xNN.iloc[0].drop(['match_id', 'id', 'xT_predicted'])  # Drop irrelevant columns
+    contributions = contributions_xNN.iloc[0].drop(['id', 'xT_predicted'])  # Drop irrelevant columns
     
     # Sort the contributions by their absolute value (magnitude) in descending order
     sorted_contributions = contributions.abs().sort_values(ascending=False)
@@ -1228,6 +1317,45 @@ def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_na
         
 
     return text
+
+
+def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "Below is an analysis of the most influential features behind this pass’s xT value:\n"
+
+    # Extract contributions
+    contributions = contributions_xNN.iloc[0].drop(['id', 'xT_predicted'])
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+
+    for idx, (feature, abs_contrib) in enumerate(sorted_contributions.items()):
+        raw_contrib = contributions[feature]
+
+        # Filter by threshold (your 95th percentile)
+        if abs(raw_contrib) < 0.00788100733068301:
+            continue
+
+        # Get readable feature name + value
+        feature_display = feature_name_mapping.get(feature, feature.replace("_", " "))
+        feature_value = pass_features[feature]
+        feature_desc = describe_pass_single_feature(feature, feature_value)
+
+        # Determine polarity and phrasing
+        if raw_contrib > 0:
+            direction = "boosted the threat level"
+        elif raw_contrib < 0:
+            direction = "diminished the pass's danger"
+        else:
+            direction = "had no notable influence"
+
+        # Add to text
+        if idx == 0:
+            text += f"\n- **{feature_display}** had the strongest impact: {feature_desc}. It significantly {direction}."
+        else:
+            text += f"\n- **{feature_display}** also stood out: {feature_desc}. It {direction}."
+
+    return text
+
+
+
 def describe_pass_contributions_mimic(contributions_mimic_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT (MIMiC model), sorted by their magnitude from largest to smallest, are as follows:\n"
 

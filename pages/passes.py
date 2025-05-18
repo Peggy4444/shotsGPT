@@ -38,11 +38,11 @@ from utils.utils import SimplerNet
 
 #from classes.visual import PassVisual_logistic as PassVisual
 from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn_shap
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position,DistributionPlot_position_model,DistributionPlot_speed_models,DistributionPlot_logistic
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn,PassContributionPlot_Logistic_position
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
 from classes.data_source import Passes
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost,PassContributionPlot_TabNet
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
 from classes.chat import Chat
 #from classes.data_source import show_mimic_tree_in_streamlit
@@ -115,7 +115,7 @@ selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id
 pass_id = selected_pass_id
 
 # Define the tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "CNN", "Regression trees"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "TabNet", "Regression trees"])
 
 # Sample content
 with tab1:
@@ -131,8 +131,7 @@ with tab1:
     df_contributions = pass_data.df_contributions
     st.write(df_contributions.astype(str))
 
-    logistic_contribution_describe = df_contributions.describe()
-    logistic_contribution_describe.to_csv("logistic_contribution_describe.csv")
+    #logistic_contribution_describe = df_contributions.describe()
 
     excluded_columns = ['xT','id', 'match_id']
     metrics = [col for col in df_contributions.columns if col not in excluded_columns]
@@ -182,10 +181,8 @@ with tab2:
    
     st.write(df_passes_xnn.astype(str))
 
-
-    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from xNN model</h3>", unsafe_allow_html=True)
     df_xnn_contrib = pass_data.contributions_xNN
-    shap_df_xnn = pass_data.model_contribution_xNN
+    xnn_models_contrib = pass_data.model_contribution_xNN
     contrib_pressure = pass_data.df_contributions_pressure
     contrib_speed = pass_data.df_contributions_speed
     contrib_position = pass_data.df_contributions_position
@@ -195,30 +192,35 @@ with tab2:
     position_df = pass_data.position_df
     event_df = pass_data.event_df
 
-    xNN_contribution_describe = df_xnn_contrib.describe()
+    ## selection xnn feature contribution of 4 models and per feature
+    st.markdown("<h3 style='font-size:18px; color:black;'>contribution from xNN model</h3>", unsafe_allow_html=True)
 
-    st.write(df_xnn_contrib.astype(str))
-    #xNN_contribution_describe.to_csv("xNN_contributions_describe.csv")
-
+    contribution_xNN = {
+    "All Features Contribution": df_xnn_contrib,
+    "Model contribution" : xnn_models_contrib
+    }
+    selected_contribution_features = st.selectbox("Select a contribution table :", options=list(contribution_xNN.keys()),index=0)
+    if selected_contribution_features != "Select a contribution":
+        feature_contribution = contribution_xNN[selected_contribution_features]
+        st.write(feature_contribution.astype(str))
+    
+   
     excluded_columns = ['xT_predicted','id', 'match_id']
     metrics = [col for col in df_xnn_contrib.columns if col not in excluded_columns]
 
    # Build and show plot
     st.markdown("<h3 style='font-size:18px; color:black;'>Xnn contribution plot</h3>", unsafe_allow_html=True)
-    # visuals_Xnn = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
-    # visuals_Xnn.add_passes(df_passes_xnn,metrics)
-    # visuals_Xnn.add_pass(df_xnn_contrib=df_xnn_contrib, df_passes_xnn=df_passes_xnn, pass_id=selected_pass_id,metrics=metrics, selected_pass_id = selected_pass_id)
-    # visuals_Xnn.show()
 
-    #xNN input contribution plot
-    metrics_shap = [c for c in shap_df_xnn.columns if c != "id"] 
-    visuals_xNN_model = model_contribution_xnn_shap(shap_df_xnn, df_passes_xnn, metrics_shap)
-    visuals_xNN_model.add_passes(df_passes_xnn, metrics_shap, selected_pass_id)
+    #xNN submodels contribution plot
+    model_xnn_cols = ['id','xT_predicted']
+    metrics_model = [c for c in xnn_models_contrib.columns if c not in model_xnn_cols]
+    visuals_xNN_model = model_contribution_xnn(xnn_models_contrib, df_passes_xnn, metrics_model)
+    visuals_xNN_model.add_passes(df_passes_xnn, metrics_model, pass_id)
     visuals_xNN_model.annotate = True
-    visuals_xNN_model.add_pass(shap_df_xnn, df_passes_xnn, selected_pass_id, metrics_shap, selected_pass_id)
+    visuals_xNN_model.add_pass(xnn_models_contrib, df_passes_xnn, selected_pass_id, metrics_model, selected_pass_id)
     plot_model_cobtribution = visuals_xNN_model.fig
     
-    # all feature contribution plot
+    # xNN per feature contribution plot
     visuals_Xnn_feature = PassContributionPlot_Xnn(df_xnn_contrib=df_xnn_contrib,df_passes_xnn=df_passes_xnn,metrics=metrics)
     visuals_Xnn_feature.add_passes(df_passes_xnn,metrics)
     visuals_Xnn_feature.annotate = True
@@ -233,24 +235,39 @@ with tab2:
     visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id=selected_pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
     plot_contribution_pressure = visuals_Xnn_Pressure.fig 
 
-    #Speed based model contribution plot
-    metrics_speed = [col for col in contrib_speed.columns if col not in excluded_columns]
+
+    #pressure based model contribution plot
+    pressure_cols = ['id']
+    metrics_pressure = [col for col in contrib_pressure.columns if col not in pressure_cols]
+    visuals_Xnn_Pressure = PassContributionPlot_Logistic_pressure(contrib_pressure,pressure_df,metrics_pressure)
+    visuals_Xnn_Pressure.add_passes(contrib_pressure,metrics_pressure,selected_pass_id=selected_pass_id)
+    visuals_Xnn_Pressure.annotate = True
+    visuals_Xnn_Pressure.add_pass(contrib_pressure,pressure_df, pass_id, metrics=metrics_pressure, selected_pass_id = selected_pass_id)
+    plot_contribution_pressure = visuals_Xnn_Pressure.fig 
+
+
+    # #Speed based model contribution plot
+    speed_cols = ['id']
+    metrics_speed = [col for col in contrib_speed.columns if col not in speed_cols]
     visuals_Xnn_speed = PassContributionPlot_Logistic_speed(contrib_speed,speed_df,metrics_speed)
     visuals_Xnn_speed.add_passes(speed_df,metrics_speed,selected_pass_id=selected_pass_id)
+    visuals_Xnn_speed.annotate = True
     visuals_Xnn_speed.add_pass(contrib_speed,speed_df, pass_id=selected_pass_id, metrics=metrics_speed, selected_pass_id = selected_pass_id)
     plot_contribution_speed = visuals_Xnn_speed.fig 
 
 
     #position based model contribution plot
-    metrics_position = [col for col in contrib_position.columns if col not in excluded_columns]
+    position_cols = ['id']
+    metrics_position = [col for col in contrib_position.columns if col not in position_cols]
     visuals_Xnn_position = PassContributionPlot_Logistic_position(contrib_position,position_df,metrics_position)
     visuals_Xnn_position.add_passes(position_df,metrics_position,pass_id)
     visuals_Xnn_position.annotate=True
     visuals_Xnn_position.add_pass(contrib_position,position_df, pass_id, metrics_position, selected_pass_id = selected_pass_id)
     plot_contribution_position = visuals_Xnn_position.fig 
 
-    #event based model contribution plot
-    metrics_event = [col for col in contrib_event.columns if col not in excluded_columns]
+    # #event based model contribution plot
+    event_cols = ['id']
+    metrics_event = [col for col in contrib_event.columns if col not in event_cols]
     visuals_Xnn_event = PassContributionPlot_Logistic_event(contrib_event,event_df,metrics_event)
     visuals_Xnn_event.add_passes(event_df,metrics_event,selected_pass_id=selected_pass_id)
     visuals_Xnn_event.annotate=True
@@ -258,8 +275,8 @@ with tab2:
     plot_contribution_event = visuals_Xnn_event.fig 
 
     plots = {
-    "XNN Feature Contribution": plot_contribution,
-    "XNN Model SHAP Contribution": plot_model_cobtribution,
+    "XNN per Feature Contribution": plot_contribution,
+    "XNN feature-based Models Contribution": plot_model_cobtribution,
     "H1:Pressure Based model" : plot_contribution_pressure,
     "H2:Speed Based model" : plot_contribution_speed,
     "H3:position based model" : plot_contribution_position,
@@ -283,7 +300,7 @@ with tab2:
     xt_value = df_xnn_contrib[df_xnn_contrib['id'] == pass_id]['xT_predicted']
     xt_value = xt_value.iloc[0] if not xt_value.empty else "N/A"
  
-    descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,pass_id, selected_competition)
+    descriptions = PassDescription_xNN(pass_data,df_xnn_contrib,xnn_models_contrib,pass_id,selected_competition)
 
     to_hash = ("xNN",selected_match_id, pass_id)
     summaries = descriptions.stream_gpt()
@@ -313,8 +330,8 @@ with tab3:
     
     st.write(feature_contrib_df.astype(str))
 
-    xgboost_contribution_describe = feature_contrib_df.describe()
-    xgboost_contribution_describe.to_csv("xgboost_contribution_describe.csv")
+    #xgboost_contribution_describe = feature_contrib_df.describe()
+    #xgboost_contribution_describe.to_csv("xgboost_contribution_describe.csv")
 
     # Show the XGBoost feature contribution plot
     st.markdown("<h3 style='font-size:24px; color:black;'>XGBoost contribution plot</h3>", unsafe_allow_html=True)
@@ -420,10 +437,42 @@ with tab3:
     chat.display_messages()
 
 with tab4:
-    st.header("CNN")
-    pass_df_cnn = pass_df.drop(['speed_difference'],axis=1)
-    st.write(pass_df_cnn.astype(str))
+    st.header("TabNet")
+    pass_df_tabnet = pass_df.drop(['speed_difference'],axis=1)
+    st.write(pass_df_tabnet.astype(str))
+
+
+
+    st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from TabNet model</h3>", unsafe_allow_html=True)
+    feature_contrib_tabnet = pass_data.contributions_tabnet
+    st.write(feature_contrib_tabnet.astype(str))
+
+        # Define which features to plot (exclude non-feature columns)
+    excluded_columns = ['Predicted_Probability', 'id', 'match_id']
+    metrics = [col for col in feature_contrib_tabnet.columns if col not in excluded_columns]
+
+        # Build and show the contribution plot
+    st.markdown("<h3 style='font-size:18px; color:black;'>TabNet contribution plot</h3>", unsafe_allow_html=True)
+
+    visuals_tabnet = PassContributionPlot_TabNet(feature_contrib_tabnet=feature_contrib_tabnet, pass_df_tabnet=pass_df_tabnet, metrics=metrics)
+    visuals_tabnet.add_passes(pass_df_tabnet, metrics, selected_pass_id=selected_pass_id)
+    visuals_tabnet.add_pass(feature_contrib_tabnet=feature_contrib_tabnet, pass_df_tabnet=pass_df_tabnet,
+                                pass_id=selected_pass_id, metrics=metrics, selected_pass_id=selected_pass_id)
+    visuals_tabnet.show()
+
+
     #model = Passes.load_model(selected_competition, show_summary=False)
+    #  Show predicted xT value
+
+    # Show predicted xT value from TabNet
+    xt_value_tabnet = feature_contrib_tabnet[feature_contrib_tabnet['id'] == pass_id]['Predicted_Probability']
+    xt_value_tabnet = xt_value_tabnet.iloc[0] if not xt_value_tabnet.empty else "N/A"
+
+    #  Pitch visual
+    visuals = PassVisual(metric=None)
+    visuals.add_pass(pass_data, pass_id, home_team_color="green", away_team_color="red")
+    visuals.show()
+
 
 
     
