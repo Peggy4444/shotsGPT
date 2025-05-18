@@ -619,8 +619,9 @@ class PassDescription_xNN(Description):
             feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
             
             pass_description = (
-                f"{sentences.describe_models_xNN(pressure,speed,position,event)} The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
                 f"{sentences.describe_xT_pass_xNN(xT,xG)}"
+                f"{sentences.describe_models_xNN(pressure,speed,position,event)} The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
+                
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
             
@@ -631,7 +632,7 @@ class PassDescription_xNN(Description):
             
             return pass_description 
 
-        def get_prompt_messages(self):
+        def get_prompt_messages_old(self):
             prompt = (
                 "You are a football commentator. You should write in an exciting and engaging way about a shot"
                 f"You should giva a four sentence summary of the shot taken by the player. "
@@ -642,6 +643,22 @@ class PassDescription_xNN(Description):
                 "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
                 )
             return [{"role": "user", "content": prompt}]
+        def get_prompt_messages(self):
+            prompt = (
+                "You are a football analyst tasked with generating a professional and tactically informed summary of a pass "
+                "that led to (or could have led to) a shot. Your goal is to explain the value of the pass using data-driven insights, "
+                "while keeping the language engaging and football-savvy, suitable for scouts, coaches, and performance analysts.\n\n"
+
+                "Write a concise 4-sentence summary of the pass:\n"
+                "1. Begin by assessing the overall threat of the pass using its xT value (expected threat) and note whether it resulted in a shot, and if so, its xG value.\n"
+                "2. In the second sentence, describe what tactical or contextual factors (like pressure, spacing, support, or positioning) influenced the outcome.\n"
+                "3. The third sentence should explain the technical execution of the pass — such as distance, angle, location, and timing.\n"
+                "4. Conclude with an insight or reflection: either praise the player’s vision and execution, or suggest what could have improved the situation.\n\n"
+
+                "Use confident, precise language, and always relate back to how the pass contributed (or failed to contribute) to shot creation and attacking effectiveness."
+            )
+            return [{"role": "user", "content": prompt}]
+
 
 ### pass descriptions for xGBoost
 class PassDescription_xgboost(Description):
