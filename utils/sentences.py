@@ -1329,7 +1329,7 @@ def describe_pass_contributions_xNN(contributions_xNN, pass_features, feature_na
     for idx, (feature, abs_contrib) in enumerate(sorted_contributions.items()):
         raw_contrib = contributions[feature]
 
-        # Filter by threshold (your 95th percentile)
+        # Filter by threshold (75th percentile)
         if abs(raw_contrib) < 0.00788100733068301:
             continue
 

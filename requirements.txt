@@ -20,6 +20,4 @@ torch
 toml
 pytorch-tabnet
 captum
-dice-ml==0.11
-raiutils==0.4.2
-jsonschema==4.23.0
+
