@@ -113,8 +113,8 @@ def describe_xT_pass_1(xT,xG):
     return description
 
 
-### describe function for logistic
-def describe_xT_pass_logistic(xT,xG):
+### describe function for logistic old one
+def describe_xT_pass_logistic_old(xT,xG):
     if xG != 0:
         if xT <= 0.05882884: #25 percentile xT
             if xG < 0.066100:
@@ -145,6 +145,44 @@ def describe_xT_pass_logistic(xT,xG):
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is high."
         else:
             description = f" The xT value is {xT} and it did not lead to a shot, the opportunities to score goal is very high."
+    return description
+
+
+### describe for logistic model current one 
+def describe_xT_pass_logistic(xT, xG):
+    xt_percentile_25 = 0.05882884
+    xt_percentile_50 = 0.079879159
+    xt_percentile_75 = 0.130563166
+    xg_threshold = 0.066100
+
+    xt_label = ""
+    if xT <= xt_percentile_25:
+        xt_label = "low"
+    elif xT <= xt_percentile_50:
+        xt_label = "moderate"
+    elif xT <= xt_percentile_75:
+        xt_label = "high"
+    else:
+        xt_label = "excellent"
+
+    xt_prob = int(xT * 100)
+
+    if xG != 0:
+        if xG < xg_threshold:
+            goal_quality = "a lower-quality shot"
+        else:
+            goal_quality = "a dangerous shot on goal"
+
+        description = (
+            f"With an xT of {xT:.3f}, this pass carried a **{xt_label} threat**, suggesting a {xt_prob}% chance of leading to a shot "
+            f"valued at more than 0.06 xG. It ultimately resulted in {goal_quality}, reflecting its attacking intent."
+        )
+    else:
+        description = (
+            f"Despite an xT of {xT:.3f}, which indicates a **{xt_label} probability** of ending in a quality shot, "
+            f"this pass didn’t lead to an attempt on goal."
+        )
+
     return description
 
 ### describe for xNN submodel contribution
@@ -1143,7 +1181,8 @@ feature_name_mapping_logistic = { "start_distance_to_goal_contribution" : "start
     "teammates_nearby_contribution": "teammates nearby"
 }
 
-def describe_pass_contributions_logistic(contributions, pass_features, feature_name_mapping=feature_name_mapping_logistic):
+### old contributions for logistic
+def describe_pass_contributions_logistic_old(contributions, pass_features, feature_name_mapping=feature_name_mapping_logistic):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
     # Extract the contributions from the pass_contributions DataFrame
@@ -1192,6 +1231,43 @@ def describe_pass_contributions_logistic(contributions, pass_features, feature_n
             else:
                 text += f"\nAnother impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
         
+
+    return text
+
+#new one for logistic
+def describe_pass_contributions_logistic(contributions, pass_features, feature_name_mapping=feature_name_mapping_logistic):
+    text = "Below is an analysis of the most influential features behind this pass’s xT value:\n"
+
+    # Extract contributions
+    contributions = contributions.iloc[0].drop(['match_id','id', 'xT'])
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+
+    for idx, (feature, abs_contrib) in enumerate(sorted_contributions.items()):
+        raw_contrib = contributions[feature]
+
+        # Filter by threshold (75th percentile)
+        if abs(raw_contrib) < 0.08735242468992192:
+            continue
+
+        # Get readable feature name + value
+        feature = feature.replace('_contribution', '')
+        feature_display = feature_name_mapping.get(feature, feature.replace("_contribution", " "))
+        feature_value = pass_features[feature]
+        feature_desc = describe_pass_single_feature(feature, feature_value)
+
+        # Determine polarity and phrasing
+        if raw_contrib > 0:
+            direction = "boosted the threat level"
+        elif raw_contrib < 0:
+            direction = "diminished the pass's danger"
+        else:
+            direction = "had no notable influence"
+
+        # Add to text
+        if idx == 0:
+            text += f"\n- **{feature_display}** had the strongest impact: {feature_desc}. It significantly {direction}."
+        else:
+            text += f"\n- **{feature_display}** also stood out: {feature_desc}. It {direction}."
 
     return text
 
