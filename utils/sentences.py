@@ -1236,7 +1236,7 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
         # Get the original sign of the contribution
         original_contribution = contributions[feature]
 
-        if original_contribution >= 0.079879159 or original_contribution <= -0.079879159:
+        if original_contribution >= 0.026505677450064418 or original_contribution <= -0.026505677450064418:
             
             # Use feature_name_mapping to get the display name for the feature (if available)
             feature_display_name = feature_name_mapping.get(feature, feature)

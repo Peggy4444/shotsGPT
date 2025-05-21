@@ -1606,7 +1606,7 @@ class Passes(Data):
     selected_pass_id,
     pass_df_xgboost,
     xGB_model,
-    threshold: float = 0.5,
+    threshold: float = 0.3,
     total_CFs: int = 5
     
 ):
@@ -1651,7 +1651,16 @@ class Passes(Data):
         #cf = exp.generate_counterfactuals(query_instance, total_CFs=total_CFs, desired_class=1)
 
         try:
-            cf = exp.generate_counterfactuals(query_instance, total_CFs=1, desired_class=1)
+            # ❗ Specify features to keep fixed
+            features_to_keep_fixed = [
+                'start_distance_to_goal', 'start_distance_to_sideline', 'pressure_on_passer',
+                'opponents_beyond', 'opponents_between', 'opponents_nearby', 'teammates_nearby'
+                ]
+
+            # ✅ Allow DiCE to vary only the remaining features
+            features_to_vary = [f for f in feature_cols if f not in features_to_keep_fixed]
+
+            cf = exp.generate_counterfactuals(query_instance, total_CFs=1, desired_class=1, features_to_vary=features_to_vary)
             df_attempted = cf.cf_examples_list[0].final_cfs_df
 
             if df_attempted.empty:
