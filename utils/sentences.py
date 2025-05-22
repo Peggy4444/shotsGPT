@@ -219,7 +219,7 @@ def describe_models_xNN(pressure, speed, position, event):
 
     # Speed-based model (h2)
     if speed <= -0.0066:
-        descs.append("Movement off the ball was sluggish, which reduced the potential impact of the pass.")
+        descs.append("Movement off the ball was slow, which reduced the potential impact of the pass.")
     else:
         descs.append("Lively off-ball runs and opposition tracking helped increase the attacking value of the move.")
 
