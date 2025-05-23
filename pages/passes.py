@@ -45,6 +45,11 @@ from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost,PassContributionPlot_TabNet
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
 from classes.chat import Chat
+from classes.description import PassDescription_bayesian
+from classes.visual import PassContributionPlot_Bayesian
+
+
+
 #from classes.data_source import show_mimic_tree_in_streamlit
 #from classes.data_source import generate_pass_counterfactuals_by_id
 from classes.visual import CounterfactualContributionPlot_XGBoost
@@ -101,6 +106,8 @@ selected_match_id = match_name_to_id[selected_match_name]
 # Create a dropdown to select a shot ID from the available shot IDs in shots.df_shots['id']
 
 pass_data = Passes(selected_competition,selected_match_id)
+
+pass_df_bayes = pass_data.df_bayes_preds  
 pass_df = pass_data.df_pass
 tracking_df = pass_data.df_tracking
 pass_df = pass_df[[col for col in pass_df.columns if "_contribution" not in col and col != "xT"]]
@@ -115,7 +122,7 @@ selected_pass_id = st.sidebar.selectbox("Select a pass id:", options=pass_df['id
 pass_id = selected_pass_id
 
 # Define the tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "TabNet", "Regression trees"])
+tab1, tab2, tab3, tab4, tab5 , tab6 = st.tabs(["Logistic Regression", "xNN", "XGBoost", "TabNet", "Regression trees","Bayesian Classification Tree"])
 
 # Sample content
 with tab1:
@@ -532,18 +539,82 @@ with tab5:
         chat.state = "default"
         chat.display_messages()
 
-    #     with st.expander("🗺️  Show mimic regression‑tree (path highlighted)"):
-    # # 1) grab the feature‑vector of the currently selected pass
-    #         x_selected = pass_df_mimic.loc[
-    #             pass_df_mimic["id"] == selected_pass_id, pass_data.feature_names
-    #         ].values[0]                 # shape (20,)
 
-    #     # 2) visualise
-    #     show_mimic_tree_in_streamlit(
-    #         tree                 = pass_data.tree,
-    #         feature_names        = pass_data.feature_names,
-    #         x_train              = pass_data.X_train_for_viz,   # or sample
-    #         y_train              = pass_data.y_train_for_viz,   # or sample
-    #         x_selected_row       = x_selected,
-    #         height_px            = 700
-    #     )
+with tab6:
+    st.header("Bayesian Classification Tree")
+
+    # Raw passes
+    st.write(pass_df.drop(columns=[c for c in pass_df.columns if "_contribution" in c or c=="xT"]))
+
+    # Contributions + xT preds
+    df_cb = pass_data.df_contributions_bayes
+    st.markdown("**Per-pass feature contributions & predicted xT**")
+    st.write(df_cb.astype(str))
+
+    # dot = pass_data.bayes_tree.to_graphviz()
+    # st.markdown("**Tree structure**")
+    # st.graphviz_chart(dot.source)
+    row = pass_data.pass_df_bayes[pass_data.pass_df_bayes["id"] == selected_pass_id]
+    if not row.empty:
+        dot = pass_data.bayes_tree.to_graphviz_with_path(row)
+        st.graphviz_chart(dot.source)
+
+
+    #  — after st.bar_chart(…) —
+
+# # generate & stream GPT narrative
+    bayes_desc = PassDescription_bayesian(
+        pass_data        = pass_data,
+        df_contributions_bayes = df_cb,
+         pass_id          = selected_pass_id,
+        competition      = selected_competition
+     )
+    narrative = bayes_desc.stream_gpt(temperature=0.7)
+    st.markdown(f"**Narrative:**  \n\n{narrative}")
+    
+    excluded_cols=["xT_predicted_bayes","id","match_id"]
+    metrics = [col for col in df_cb.columns if col not in excluded_cols]
+
+
+    from classes.visual import PassContributionPlot_Bayesian
+    
+    bayes_plot = PassContributionPlot_Bayesian(df_cb=pass_data.df_contributions_bayes,df_passes=pass_data.pass_df_bayes ,metrics= metrics)
+    bayes_plot.add_passes(df_passes = pass_data.df_pass,metrics = metrics,selected_pass_id = selected_pass_id)
+    #bayes_plot.add_pass(pass_data.df_contributions_bayes, pass_data.pass_df_bayes, metrics=metrics, selected_pass_id = selected_pass_id)
+    bayes_plot.add_pass(df_cb,pass_df= pass_data.df_pass,pass_id = selected_pass_id,metrics= metrics,selected_pass_id = selected_pass_id)
+    bayes_plot.show()
+
+
+    #     # Show predicted xT value from Bayesian model
+    # xt_value_bayes = df_contrib_bayes[df_contrib_bayes['id'] == pass_id]['bayes_xT']
+    # xt_value_bayes = xt_value_bayes.iloc[0] if not xt_value_bayes.empty else "N/A"
+
+    # st.markdown(
+    #         f"<h5 style='font-size:18px; color:green;'>Pass ID: {pass_id} | Match Name : {selected_match_name} | Bayesian xT : {xt_value_bayes:.3f}</h5>",
+    #         unsafe_allow_html=True
+    # )
+
+    #     # Pitch visual
+    visuals = PassVisual(metric=None)
+    visuals.add_pass(pass_data, pass_id, home_team_color="green", away_team_color="red")
+    visuals.show()
+
+
+    to_hash = ("Bayesian Classification Tree",selected_match_id, pass_id)
+    summaries = descriptions.stream_gpt()
+    chat = create_chat(to_hash, Chat)
+
+    if summaries:
+        chat.add_message(summaries)
+
+
+
+        chat.state = "default"
+        chat.display_messages()
+
+
+
+    
+
+
+

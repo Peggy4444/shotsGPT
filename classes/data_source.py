@@ -12,6 +12,7 @@ from statsmodels.api import load
 import torch
 import joblib
 import toml
+import dill
 
 from itertools import accumulate
 from pathlib import Path
@@ -37,7 +38,14 @@ import shap
 import xgboost as xgb
 import joblib
 from utils.utils import SimplerNet
+import cloudpickle
 #from dtreeviz import dtreeviz
+from classes.bayes_model import BayesianClassificationTree,Node
+
+import json
+from pathlib import Path
+from classes.bayes_model import BayesianClassificationTree
+
 import dice_ml
 from dice_ml import Dice
 
@@ -49,7 +57,32 @@ from pytorch_tabnet.tab_model import TabNetClassifier
 
 import classes.data_point as data_point
 
+
+
+
+import math
+from scipy.special import betaln
+
+
+
 # from classes.wyscout_api import WyNot
+
+@st.cache_data(show_spinner=False)
+def build_bayes_tree(X_df, y, *,
+                     alpha=1.0, beta=1.0,
+                     split_prior_decay=0.9,
+                     min_samples=20, max_depth=4,
+                     split_precision=1e-6):
+    """Train your Bayes tree once per identical (X_df, y) pair."""
+    tree = BayesianClassificationTree(
+        alpha=alpha, beta=beta,
+        split_prior_decay=split_prior_decay,
+        min_samples=min_samples,
+        max_depth=max_depth,
+        split_precision=split_precision
+    )
+    return tree.fit(X_df, y)
+
 
 
 # Base class for all data
@@ -827,6 +860,50 @@ class Passes(Data):
     def __init__(self,competition,match_id):
         self.match_id = match_id
         self.df_pass,self.df_tracking = self.get_data(match_id)
+
+
+
+    # drop columns to match features used during training
+        orig_drop = ['id','match_id','player_id','season','passer_name','pass_recipient_id',
+                'receiver_name','team_name','forward pass','h2','h3','team_id',
+                'possession_team_id','passer_x','passer_y','backward pass','lateral pass',
+                'possession_xg','possession_goal','h1','h4','start_x','start_y','end_x',
+                'end_y','possession_xG_target','pressure level passer'
+        ]
+        cols_to_drop = [c for c in orig_drop if c in self.df_pass.columns]
+        X_df = self.df_pass.drop(columns=cols_to_drop)
+        y = self.df_pass["possession_xG_target"]
+
+            # Load model from JSON
+        json_path = Path(__file__).resolve().parent.parent / "data" / "bayes_structure.json"
+        if not json_path.exists():
+                raise FileNotFoundError(f"Trained Bayesian tree not found at {json_path}")
+
+        with open(json_path, "r") as f:
+                tree_data = json.load(f)
+
+        self.bayes_tree = BayesianClassificationTree.from_dict(tree_data)
+
+        # Compute predictions
+        bayes_probs = self.bayes_tree.predict_proba(X_df)
+        bayes_contrib = self.bayes_tree.path_contributions(X_df)
+
+        self.df_bayes_preds = pd.DataFrame({
+            "id": self.df_pass["id"],
+            "match_id": self.df_pass["match_id"],
+            "xT_predicted_bayes": bayes_probs
+        })
+
+        self.df_contributions_bayes = (
+                bayes_contrib
+                .assign(id=self.df_pass["id"], match_id=self.df_pass["match_id"])
+                .merge(self.df_bayes_preds[["id", "xT_predicted_bayes"]], on="id", how="left")
+            )
+
+        self.pass_df_bayes = self.df_pass.copy()
+ 
+
+
         
         #initialzing for logistic mdoel
         self.xT_Model = self.load_model_logistic(competition,show_summary=False)
@@ -936,29 +1013,8 @@ class Passes(Data):
         self.event_df = (self.df_pass.loc[:, ["id","match_id","start_distance_to_goal","end_distance_to_goal","start_distance_to_sideline","end_distance_to_sideline","start_angle_to_goal","end_angle_to_goal","pass_angle","pass_length"]]
             .copy())        
         self.df_contributions_event = self.contributions_xNN[["id","start_distance_to_goal","end_distance_to_goal","start_distance_to_sideline","end_distance_to_sideline","start_angle_to_goal","end_angle_to_goal","pass_angle","pass_length"]]
-        #self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
-        #self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
 
-
-
-        #Initializing for mimic
-        ''''
-        drop_cols_mimic = [
-            'possession_xG_target', 'speed_difference', 'xT',
-            'h1', 'h2', 'h3', 'h4',
-            'start_distance_to_goal_contribution', 'packing_contribution',
-            'pass_angle_contribution', 'pass_length_contribution',
-            'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution',
-            'start_distance_to_sideline_contribution', 'teammates_beyond_contribution',
-            'opponents_beyond_contribution', 'teammates_nearby_contribution',
-            'opponents_between_contribution', 'opponents_nearby_contribution',
-            'speed_difference_contribution'
-        ]
-        self.pass_df_mimic = self.df_pass.drop(columns=[col for col in drop_cols_mimic if col in self.df_pass.columns])
-        self.df_contributions_mimic = self.weight_contributions_mimic(self.pass_df_mimic)
-        '''
-        
-        #mimic_features = self.load_mimic_feature_names()
+       #mimic_features = self.load_mimic_feature_names()
         self.tree = self.load_mimic_tree(competition)
         self.leaf_models = self.load_leaf_models(competition)
         self.feature_names = self.load_mimic_feature_names(competition)
@@ -979,9 +1035,7 @@ class Passes(Data):
         self.leaf_models = self.load_leaf_models(competition)
         self.feature_names = self.load_mimic_feature_names(competition)
         self.leaf_feature_means = self.load_leaf_feature_means(competition)
-        self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
-        self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
-
+    
     def get_data(self, match_id=None):
         self.df_pass = pd.read_csv("data/df_passes.csv")
         self.df_tracking = pd.read_csv("data/tracking.csv")
@@ -1581,7 +1635,7 @@ class Passes(Data):
         # 2. Extract X (feature matrix)
         X = pass_df_xgboost[feature_cols]
 
-        # 3. Predict xT probabilities using the classifier
+            # 3. Predict xT probabilities using the classifier
         xT_probabilities = xGB_model.predict_proba(X)[:,1]
 
         # 4. Compute SHAP values
@@ -1705,43 +1759,6 @@ class Passes(Data):
         return result_df, pred_prob, shap_df_cf
 
     
-    # def load_mimic_tree(self):
-    #     try:
-    #         return joblib.load("data/mimic_tree.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading mimic tree: {e}")
-    #         return None
-
-    # def load_leaf_models(self):
-    #     try:
-    #         return joblib.load("data/leaf_models.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading leaf models: {e}")
-    #         return None
-
-    # def load_mimic_feature_names(self):
-    #     try:
-    #         return joblib.load("data/mimic_feature_names.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading mimic feature names: {e}")
-    #         return []
-
-    # def load_leaf_feature_means(self):
-    #     try:
-    #         return joblib.load("data/leaf_feature_means.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading leaf feature means: {e}")
-    #         return {}
-        
-    # def mimic_predict(X_input,tree,leaf_models):
-    #     leaf_indices = tree.apply(X_input)
-    #     preds = np.zeros(X_input.shape[0])
-    #     for i, leaf in enumerate(leaf_indices):
-    #         if leaf in leaf_models:
-    #             preds[i] = leaf_models[leaf].predict(X_input[i].reshape(1, -1))[0]
-    #         else:
-    #             preds[i] = tree.predict(X_input[i].reshape(1, -1))[0]
-    #     return preds
 
     
     

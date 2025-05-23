@@ -1462,3 +1462,35 @@ def describe_pass_contributions_mimic(contributions_mimic_df, pass_features, fea
                 text += f"\nAnother key feature is {feature_display_name}, which had a {impact} because {feature_value_description}. This feature {impact_text}"
 
     return text
+
+def describe_pass_contributions_bayesian(contributions_bayes_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "The contributions of the features to the xT (Bayesian Tree model), sorted by their magnitude from largest to smallest, are as follows:\n"
+
+    # Drop irrelevant columns
+    contributions = contributions_bayes_df.iloc[0].drop(['match_id', 'id'])
+
+    # Sort by absolute value
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+
+    for idx, (feature, contribution) in enumerate(sorted_contributions.items()):
+        original_contribution = contributions[feature]
+
+        # Thresholding — tweak if needed
+        if abs(original_contribution) >= 0.01:
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            feature_value = pass_features.get(feature, None)
+            feature_value_description = describe_pass_single_feature(feature, feature_value)
+
+            if original_contribution > 0:
+                impact = "positive contribution"
+                impact_text = "increased the xT."
+            else:
+                impact = "negative contribution"
+                impact_text = "reduced the xT."
+
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had a {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother key feature is {feature_display_name}, which had a {impact} because {feature_value_description}. This feature {impact_text}"
+
+    return text
