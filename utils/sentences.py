@@ -1574,10 +1574,51 @@ def describe_pass_contributions_bayesian(contributions_bayes_df, pass_features, 
     return text
 
 
+def describe_pass_contributions_TabNet(contributions_tabnet, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "The model’s prediction for this pass was shaped by the following features, listed in order of their influence on the model’s confidence:\n"
+    
+    # Extract the contributions from the pass_contributions
+    contributions = contributions_tabnet.iloc[0].drop(['match_id', 'id', 'Predicted_Probability'])  # Drop irrelevant columns
+    
+    # Sort the contributions by their absolute value (magnitude) in descending order
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+    
+    # Loop through contributions and describe
+    for idx, (feature, contribution) in enumerate(sorted_contributions.items()):
+        original_contribution = contributions[feature]
+
+        # Skip features with very small influence
+        if abs(original_contribution) < 0.01:
+            continue
+        
+        feature_display_name = feature_name_mapping.get(feature, feature)
+        feature_value = pass_features[feature]
+        feature_value_description = describe_pass_single_feature(feature, feature_value)
+
+        # IG-specific language
+        if original_contribution > 0:
+            direction = "increased the model's confidence in this pass being dangerous"
+            impact = "strong positive influence"
+        elif original_contribution < 0:
+            direction = "led the model to be less confident about the danger of this pass"
+            impact = "strong negative influence"
+        else:
+            direction = "did not noticeably affect the model's assessment"
+            impact = "neutral influence"
+
+        if idx == 0:
+            text += f"\nThe most influential feature is **{feature_display_name}**, which had a {impact} because {feature_value_description}. It {direction}."
+        else:
+            text += f"\nAnother notable feature is **{feature_display_name}**, which had a {impact} because {feature_value_description}. It {direction}."
+
+    return text
+
+
+
 
 
 # #contribution feature of TabNet model
-def describe_pass_contributions_TabNet(contributions_tabnet, pass_features, feature_name_mapping=feature_name_mapping_pass):
+def describe_pass_contributions_TabNet_old(contributions_tabnet, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
     # Extract the contributions from the pass_contributions

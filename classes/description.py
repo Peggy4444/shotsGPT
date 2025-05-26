@@ -1163,7 +1163,7 @@ class PassDescription_TabNet(Description):
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
 
-            pass_description += '\n' + sentences.describe_pass_contributions_IG(contributions, pass_features)
+            pass_description += '\n' + sentences.describe_pass_contributions_TabNet(contributions, pass_features)
 
             with st.expander("Synthesized Text"):
                 st.write(pass_description)
