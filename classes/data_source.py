@@ -1934,8 +1934,14 @@ class Passes(Data):
 
             # Create results DataFrame
             contributions_df = pd.DataFrame(gradient_input, columns=feature_cols)
+            # contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+            #contributions_df['Predicted_Probability'] = output.detach().numpy()
+            y_pred_proba = tabnet_model.predict_proba(X_scaled)[:, 1]
+            contributions_df['Predicted_Probability'] = y_pred_proba
+
+
+            contributions_df.insert(0, 'match_id', pass_df_tabnet['match_id'].values)
             contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
-            contributions_df['Predicted_Probability'] = output.detach().numpy()
 
             return contributions_df
 

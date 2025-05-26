@@ -38,15 +38,12 @@ from utils.utils import SimplerNet
 
 #from classes.visual import PassVisual_logistic as PassVisual
 from classes.data_source import Passes
-<<<<<<< HEAD
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn,Distributionplot_xnn_pressure
-from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position,DistributionPlot_position_model,DistributionPlot_speed_models,DistributionPlot_logistic
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn
+from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic, PassDescription_TabNet
-=======
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn,PassContributionPlot_Logistic_position
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
->>>>>>> 76639f88183447d5853d9bd7a945a0db5b6abc17
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost,PassContributionPlot_TabNet
 from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN, PassDescription_TabNet
@@ -480,6 +477,7 @@ with tab4:
     visuals_tabnet.add_pass(feature_contrib_tabnet=feature_contrib_tabnet, pass_df_tabnet=pass_df_tabnet,
                                 pass_id=selected_pass_id, metrics=metrics, selected_pass_id=selected_pass_id)
     visuals_tabnet.show()
+    
 
 
     #model = Passes.load_model(selected_competition, show_summary=False)
@@ -493,6 +491,10 @@ with tab4:
     visuals = PassVisual(metric=None)
     visuals.add_pass(pass_data, pass_id, home_team_color="green", away_team_color="red")
     visuals.show()
+    if summaries:
+        chat.add_message(summaries)
+
+    chat.display_messages()
 
 
 
