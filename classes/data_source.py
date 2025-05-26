@@ -12,6 +12,7 @@ from statsmodels.api import load
 import torch
 import joblib
 import toml
+import dill
 
 from itertools import accumulate
 from pathlib import Path
@@ -37,7 +38,16 @@ import shap
 import xgboost as xgb
 import joblib
 from utils.utils import SimplerNet
+import cloudpickle
 #from dtreeviz import dtreeviz
+from classes.bayes_model import BayesianClassificationTree,Node
+
+import json
+from pathlib import Path
+from classes.bayes_model import BayesianClassificationTree
+
+import dice_ml
+from dice_ml import Dice
 
 #from dtreeviz.trees import dtreeviz
 import streamlit.components.v1 as components
@@ -47,7 +57,32 @@ from pytorch_tabnet.tab_model import TabNetClassifier
 
 import classes.data_point as data_point
 
+
+
+
+import math
+from scipy.special import betaln
+
+
+
 # from classes.wyscout_api import WyNot
+
+@st.cache_data(show_spinner=False)
+def build_bayes_tree(X_df, y, *,
+                     alpha=1.0, beta=1.0,
+                     split_prior_decay=0.9,
+                     min_samples=20, max_depth=4,
+                     split_precision=1e-6):
+    """Train your Bayes tree once per identical (X_df, y) pair."""
+    tree = BayesianClassificationTree(
+        alpha=alpha, beta=beta,
+        split_prior_decay=split_prior_decay,
+        min_samples=min_samples,
+        max_depth=max_depth,
+        split_precision=split_precision
+    )
+    return tree.fit(X_df, y)
+
 
 
 # Base class for all data
@@ -825,6 +860,50 @@ class Passes(Data):
     def __init__(self,competition,match_id):
         self.match_id = match_id
         self.df_pass,self.df_tracking = self.get_data(match_id)
+
+
+
+    # drop columns to match features used during training
+        orig_drop = ['id','match_id','player_id','season','passer_name','pass_recipient_id',
+                'receiver_name','team_name','forward pass','h2','h3','team_id',
+                'possession_team_id','passer_x','passer_y','backward pass','lateral pass',
+                'possession_xg','possession_goal','h1','h4','start_x','start_y','end_x',
+                'end_y','possession_xG_target','pressure level passer'
+        ]
+        cols_to_drop = [c for c in orig_drop if c in self.df_pass.columns]
+        X_df = self.df_pass.drop(columns=cols_to_drop)
+        y = self.df_pass["possession_xG_target"]
+
+            # Load model from JSON
+        json_path = Path(__file__).resolve().parent.parent / "data" / "bayes_structure.json"
+        if not json_path.exists():
+                raise FileNotFoundError(f"Trained Bayesian tree not found at {json_path}")
+
+        with open(json_path, "r") as f:
+                tree_data = json.load(f)
+
+        self.bayes_tree = BayesianClassificationTree.from_dict(tree_data)
+
+        # Compute predictions
+        bayes_probs = self.bayes_tree.predict_proba(X_df)
+        bayes_contrib = self.bayes_tree.path_contributions(X_df)
+
+        self.df_bayes_preds = pd.DataFrame({
+            "id": self.df_pass["id"],
+            "match_id": self.df_pass["match_id"],
+            "xT_predicted_bayes": bayes_probs
+        })
+
+        self.df_contributions_bayes = (
+                bayes_contrib
+                .assign(id=self.df_pass["id"], match_id=self.df_pass["match_id"])
+                .merge(self.df_bayes_preds[["id", "xT_predicted_bayes"]], on="id", how="left")
+            )
+
+        self.pass_df_bayes = self.df_pass.copy()
+ 
+
+
         
         #initialzing for logistic mdoel
         self.xT_Model = self.load_model_logistic(competition,show_summary=False)
@@ -917,52 +996,25 @@ class Passes(Data):
         #load pressure based model
         self.pressure_df = (self.df_pass.loc[:, ["id","pressure_on_passer","opponents_nearby","teammates_nearby","packing"]]
             .copy())        
-        # self.parameters_pressure = self.read_pressure_model_params(competition)
-        # self.df_contributions_pressure = self.contributions_logistic_pressure(self.pressure_df,self.pass_df_xNN)
         self.df_contributions_pressure = self.contributions_xNN[["id","pressure_on_passer","opponents_nearby","teammates_nearby","packing"]]
 
 
         #load speed based model
         self.speed_df = (self.df_pass.loc[:, ["id","match_id","average_speed_of_teammates","average_speed_of_opponents"]]
             .copy())        
-        self.parameters_speed = self.read_speed_model_params(competition)
-        self.df_contributions_speed = self.contributions_logistic_speed(self.speed_df,self.pass_df_xNN)
+        self.df_contributions_speed = self.contributions_xNN[["id","average_speed_of_teammates","average_speed_of_opponents"]]
 
         #position based model
         self.position_df = (self.df_pass.loc[:, ["id","match_id","teammates_behind","teammates_beyond","opponents_behind","opponents_beyond","opponents_between"]]
             .copy())        
-        self.parameters_position = self.read_position_model_params(competition)
-        self.df_contributions_position = self.contributions_logistic_position(self.position_df,self.pass_df_xNN)
+        self.df_contributions_position = self.contributions_xNN[["id","teammates_behind","teammates_beyond","opponents_behind","opponents_beyond","opponents_between"]]
 
         #event based model
         self.event_df = (self.df_pass.loc[:, ["id","match_id","start_distance_to_goal","end_distance_to_goal","start_distance_to_sideline","end_distance_to_sideline","start_angle_to_goal","end_angle_to_goal","pass_angle","pass_length"]]
             .copy())        
-        self.parameters_event = self.read_event_model_params(competition)
-        self.df_contributions_event = self.contributions_logistic_event(self.event_df,self.pass_df_xNN)
+        self.df_contributions_event = self.contributions_xNN[["id","start_distance_to_goal","end_distance_to_goal","start_distance_to_sideline","end_distance_to_sideline","start_angle_to_goal","end_angle_to_goal","pass_angle","pass_length"]]
 
-        #self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
-        #self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
-
-
-
-        #Initializing for mimic
-        ''''
-        drop_cols_mimic = [
-            'possession_xG_target', 'speed_difference', 'xT',
-            'h1', 'h2', 'h3', 'h4',
-            'start_distance_to_goal_contribution', 'packing_contribution',
-            'pass_angle_contribution', 'pass_length_contribution',
-            'end_distance_to_goal_contribution', 'start_angle_to_goal_contribution',
-            'start_distance_to_sideline_contribution', 'teammates_beyond_contribution',
-            'opponents_beyond_contribution', 'teammates_nearby_contribution',
-            'opponents_between_contribution', 'opponents_nearby_contribution',
-            'speed_difference_contribution'
-        ]
-        self.pass_df_mimic = self.df_pass.drop(columns=[col for col in drop_cols_mimic if col in self.df_pass.columns])
-        self.df_contributions_mimic = self.weight_contributions_mimic(self.pass_df_mimic)
-        '''
-        
-        #mimic_features = self.load_mimic_feature_names()
+       #mimic_features = self.load_mimic_feature_names()
         self.tree = self.load_mimic_tree(competition)
         self.leaf_models = self.load_leaf_models(competition)
         self.feature_names = self.load_mimic_feature_names(competition)
@@ -983,9 +1035,7 @@ class Passes(Data):
         self.leaf_models = self.load_leaf_models(competition)
         self.feature_names = self.load_mimic_feature_names(competition)
         self.leaf_feature_means = self.load_leaf_feature_means(competition)
-        self.X_train_for_viz = self.pass_df_mimic[self.feature_names].values.astype(np.float32)
-        self.y_train_for_viz = self.df_contributions_mimic["mimic_xT"].values.astype(np.float32)
-
+    
     def get_data(self, match_id=None):
         self.df_pass = pd.read_csv("data/df_passes.csv")
         self.df_tracking = pd.read_csv("data/tracking.csv")
@@ -1301,10 +1351,6 @@ class Passes(Data):
             return None
                     
 
-    
-
-        
-    
     @staticmethod
     def load_pressure_model(competition, show_summary=False):
 
@@ -1455,108 +1501,6 @@ class Passes(Data):
             st.error(f"Error loading scaler: {e}")
             return None
     
-    ## contribution pressure based logistic models
-    def contributions_logistic_pressure(self, pressure_df, pass_df_xnn):
-        
-        df = pressure_df.copy()
-
-        #pre‐loaded params
-        params = self.parameters_pressure
-
-        #compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        #the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-
-
-    ### contribution for speed based model
-    def contributions_logistic_speed(self,speed_df,pass_df_xnn):
-        df = speed_df.copy()
-
-        # 2) grab your pre‐loaded params
-        params = self.parameters_speed
-
-        # 3) compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        # 4) pick out just the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-    
-    #contribution of position based 
-    def contributions_logistic_position(self,position_df,pass_df_xnn):
-        df = position_df.copy()
-
-        # 2) grab your pre‐loaded params
-        params = self.parameters_position
-
-        # 3) compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        # 4) pick out just the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-
-    ## contributions of event based model 
-    def contributions_logistic_event(self,event_df,pass_df_xnn):
-        df = event_df.copy()
-
-        # 2) grab your pre‐loaded params
-        params = self.parameters_event
-
-        # 3) compute and mean‐center each contribution
-        for _, row in params.iterrows():
-            name = row['Parameter']
-            val  = row['Value']
-            col  = f"{name}_contribution"
-
-            df[col] = df[name] * val
-            df[col] -= df[col].mean()
-
-        # 4) pick out just the id/match_id + contributions and merge
-        contrib_cols = [c for c in df.columns if c.endswith("_contribution")]
-        result = (
-            pass_df_xnn[['id','match_id']]
-            .merge(df[['id','match_id'] + contrib_cols], on=['id','match_id'])
-        )
-
-        return result
-
     ## contributions of xNN input
     def get_model_contributions_xNN(self,pass_df_xNN,competition):
         # Load model and scaler
@@ -1691,7 +1635,7 @@ class Passes(Data):
         # 2. Extract X (feature matrix)
         X = pass_df_xgboost[feature_cols]
 
-        # 3. Predict xT probabilities using the classifier
+            # 3. Predict xT probabilities using the classifier
         xT_probabilities = xGB_model.predict_proba(X)[:,1]
 
         # 4. Compute SHAP values
@@ -1712,43 +1656,109 @@ class Passes(Data):
 
         return shap_df 
     
-    # def load_mimic_tree(self):
-    #     try:
-    #         return joblib.load("data/mimic_tree.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading mimic tree: {e}")
-    #         return None
+    def generate_pass_counterfactuals_by_id(self,
+    selected_pass_id,
+    pass_df_xgboost,
+    xGB_model,
+    threshold: float = 0.3,
+    total_CFs: int = 5
+    
+):
+    
 
-    # def load_leaf_models(self):
-    #     try:
-    #         return joblib.load("data/leaf_models.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading leaf models: {e}")
-    #         return None
+        # Check ID is valid
+        if selected_pass_id not in pass_df_xgboost["id"].values:
+            raise ValueError(f"pass_id {selected_pass_id} not found in dataframe.")
 
-    # def load_mimic_feature_names(self):
-    #     try:
-    #         return joblib.load("data/mimic_feature_names.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading mimic feature names: {e}")
-    #         return []
+        # Find row index
+        query_index = pass_df_xgboost[pass_df_xgboost["id"] == selected_pass_id].index[0]
 
-    # def load_leaf_feature_means(self):
-    #     try:
-    #         return joblib.load("data/leaf_feature_means.pkl")
-    #     except Exception as e:
-    #         st.error(f"Error loading leaf feature means: {e}")
-    #         return {}
-        
-    # def mimic_predict(X_input,tree,leaf_models):
-    #     leaf_indices = tree.apply(X_input)
-    #     preds = np.zeros(X_input.shape[0])
-    #     for i, leaf in enumerate(leaf_indices):
-    #         if leaf in leaf_models:
-    #             preds[i] = leaf_models[leaf].predict(X_input[i].reshape(1, -1))[0]
-    #         else:
-    #             preds[i] = tree.predict(X_input[i].reshape(1, -1))[0]
-    #     return preds
+        # Select feature columns
+        feature_cols = [col for col in pass_df_xgboost.columns if col not in [
+        'id', 'player_id', 'match_id', 'team_id', 'possession_team_id',
+        'passer_x', 'passer_y', 'start_x', 'start_y', 'end_x', 'end_y',
+        'pressure level passer', 'forward pass', 'backward pass', 'lateral pass',
+        'season', 'pass_recipient_id', 'passer_name', 'receiver_name',
+        'team_name', 'possession_xg', 'possession_goal']]
+
+        X = pass_df_xgboost[feature_cols]
+        y = self.df_pass.loc[pass_df_xgboost.index, 'possession_xG_target']
+
+        # Select the instance to explain
+        query_instance = X.iloc[[query_index]]
+        pred_prob = xGB_model.predict_proba(query_instance)[0][1]
+        print(f"[DEBUG] Predicted xT for pass {selected_pass_id}: {pred_prob}")
+
+        # ✅ EARLY EXIT before doing anything with DiCE
+        if pred_prob > threshold:
+            return pd.DataFrame(), pred_prob
+
+        # ✅ Now safe to create DiCE objects
+        data_dice = dice_ml.Data(
+        dataframe=pd.concat([X, y], axis=1),
+        continuous_features=feature_cols,
+        outcome_name='possession_xG_target')
+        model_dice = dice_ml.Model(model=xGB_model, backend="sklearn")
+        exp = Dice(data_dice, model_dice)
+
+        # Generate counterfactuals
+        #cf = exp.generate_counterfactuals(query_instance, total_CFs=total_CFs, desired_class=1)
+
+        try:
+            # ❗ Specify features to keep fixed
+            features_to_keep_fixed = [
+                'start_distance_to_goal', 'start_distance_to_sideline', 'pressure_on_passer',
+                'opponents_beyond', 'opponents_between', 'opponents_nearby', 'teammates_nearby'
+                ]
+
+            # ✅ Allow DiCE to vary only the remaining features
+            features_to_vary = [f for f in feature_cols if f not in features_to_keep_fixed]
+
+            cf = exp.generate_counterfactuals(query_instance, total_CFs=1, desired_class=1, features_to_vary=features_to_vary)
+            df_attempted = cf.cf_examples_list[0].final_cfs_df
+
+            if df_attempted.empty:
+                print(f"[DEBUG] DiCE ran but returned no valid counterfactuals.")
+            else:
+                print("[DEBUG] Raw counterfactual explanation:")
+                print(cf.visualize_as_dataframe())
+
+        except Exception as e:
+            print(f"[WARNING] DiCE failed to generate counterfactuals: {e}")
+            return pd.DataFrame(), pred_prob, pd.DataFrame()
+
+
+        cf_df = cf.cf_examples_list[0].final_cfs_df[feature_cols]
+        cf_df["predicted_prob"] = xGB_model.predict_proba(cf_df)[:, 1]
+        print(cf_df[["predicted_prob"]])
+
+        #print(f"Generated {len(cf_df)} counterfactuals, kept {len(filtered_cf)} after threshold filtering.")
+
+
+        filtered_cf = cf_df[cf_df["predicted_prob"] > threshold].reset_index(drop=True)
+
+                # ✅ SHAP for counterfactual (only if one exists)
+        shap_df_cf = pd.DataFrame()
+        if not filtered_cf.empty:
+            cf_instance = filtered_cf.iloc[[0]][feature_cols]
+            explainer = shap.Explainer(xGB_model, X)
+            shap_values_cf = explainer(cf_instance)
+            shap_df_cf = pd.DataFrame([shap_values_cf.values[0]], columns=feature_cols)
+            
+
+
+        # Add metadata
+        filtered_cf["pass_id"] = str(selected_pass_id)
+        filtered_cf["type"] = "counterfactual"
+        original_with_id = query_instance.copy()
+        original_with_id["predicted_prob"] = pred_prob
+        original_with_id["pass_id"] = str(selected_pass_id)
+        original_with_id["type"] = "original"
+
+        result_df = pd.concat([original_with_id, filtered_cf], ignore_index=True)
+        return result_df, pred_prob, shap_df_cf
+
+    
 
     
     

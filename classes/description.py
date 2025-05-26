@@ -619,23 +619,20 @@ class PassDescription_xNN(Description):
             feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
             
             pass_description = (
-                f"{sentences.describe_models_xNN(pressure,speed,position,event)} The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
                 f"{sentences.describe_xT_pass_xNN(xT,xG)}"
+                f"{sentences.describe_models_xNN(pressure,speed,position,event)} The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
+                
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
-
-            pass_description += '\n' + sentences.describe_models_xNN(pressure,speed,position,event)
             
             pass_description += '\n' + sentences.describe_pass_contributions_xNN(contributions, pass_features)
-
-            
 
             with st.expander("Synthesized Text"):
                 st.write(pass_description)
             
             return pass_description 
 
-        def get_prompt_messages(self):
+        def get_prompt_messages_old(self):
             prompt = (
                 "You are a football commentator. You should write in an exciting and engaging way about a shot"
                 f"You should giva a four sentence summary of the shot taken by the player. "
@@ -646,6 +643,22 @@ class PassDescription_xNN(Description):
                 "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
                 )
             return [{"role": "user", "content": prompt}]
+        def get_prompt_messages(self):
+            prompt = (
+                "You are a football analyst tasked with generating a professional and tactically informed summary of a pass "
+                "that led to (or could have led to) a shot. Your goal is to explain the value of the pass using data-driven insights, "
+                "while keeping the language engaging and football-savvy, suitable for scouts, coaches, and performance analysts.\n\n"
+
+                "Write a concise 4-sentence summary of the pass:\n"
+                "1. Begin by assessing the overall threat of the pass using its xT value (expected threat) and note whether it resulted in a shot, and if so, its xG value.\n"
+                "2. In the second sentence, describe what tactical or contextual factors (like pressure, spacing, support, or positioning) influenced the outcome.\n"
+                "3. The third sentence should explain the technical execution of the pass — such as distance, angle, location, and timing.\n"
+                "4. Conclude with an insight or reflection: either praise the player’s vision and execution, or suggest what could have improved the situation.\n\n"
+
+                "Use confident, precise language, and always relate back to how the pass contributed (or failed to contribute) to shot creation and attacking effectiveness."
+            )
+            return [{"role": "user", "content": prompt}]
+
 
 ### pass descriptions for xGBoost
 class PassDescription_xgboost(Description):
@@ -732,7 +745,7 @@ class PassDescription_xgboost(Description):
             
             pass_description = (
                 f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x,y,team_direction)} \n and the passer is {player_name} from {team_name} team."
-                f"{sentences.describe_xT_pass(xT,xG)}"
+                f"{sentences.describe_xT_pass_xgboost(xT,xG)}"
             )
             pass_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
 
@@ -743,18 +756,30 @@ class PassDescription_xgboost(Description):
             
             return pass_description 
 
+        #def get_prompt_messages_old(self):
+        #    prompt = (
+        #        "You are a football commentator. You should write in an exciting and engaging way about a shot"
+        #        f"You should giva a four sentence summary of the shot taken by the player. "
+        #        "The first sentence should say whether it was a good chance or not, state the expected goals value and also state if it was a goal. "
+        #        "The second and third sentences should describe the most important factors that contributed to the quality of the chance. "
+        #        "If it was a good chance these two sentences chould explain what contributing factors made the shot dangerous. "
+        #        "If it wasn't particularly good chance then these two sentences chould explain why it wasn't a good chance. "
+        #        "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
+        #        )
+            
         def get_prompt_messages(self):
             prompt = (
-                "You are a football commentator. You should write in an exciting and engaging way about a shot"
-                f"You should giva a four sentence summary of the shot taken by the player. "
-                "The first sentence should say whether it was a good chance or not, state the expected goals value and also state if it was a goal. "
-                "The second and third sentences should describe the most important factors that contributed to the quality of the chance. "
-                "If it was a good chance these two sentences chould explain what contributing factors made the shot dangerous. "
-                "If it wasn't particularly good chance then these two sentences chould explain why it wasn't a good chance. "
-                "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
-                )
+            "You are a football commentator. You should write in an exciting and engaging way about the features contributing for pass to be a shot and is it a safe or dangerous pass. "
+            f"You should give a four sentence summary of the pass taken by the player. "
+            "The first sentence should say whether it was a good chance or not, state the expected threat value and also state the probability of expected goal. "
+            "The second and third sentences should describe the most important factors that contributed to the pass to be safe or dangerous. "
+            "If it was a good chance these two sentences should explain what contributing factors made the pass dangerous. "
+            "If it wasn't particularly good chance then these two sentences should explain why it was a safe pass. "
+            "Depending on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when initiating the pass."
+            )
+    
             return [{"role": "user", "content": prompt}]
-
+    
 class CountryDescription(Description):
     output_token_limit = 150
 
@@ -931,16 +956,7 @@ class PassDescription_mimic(Description):
                             'end_distance_to_goal' : passes['end_distance_to_goal'].iloc[0],
                             'teammates_nearby' : passes['teammates_nearby'].iloc[0]                       
                             }
-        
-        # Extract mimic-related features (raw features for description)
-        #pass_row = passes.iloc[0]
-        #pass_features = {
-            #col.replace("_mimic", ""): pass_row[col]
-            #for col in pass_row.index
-            #if col.endswith("_mimic")
-        #}
-
-
+    
         feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
 
         description = (
@@ -964,6 +980,97 @@ class PassDescription_mimic(Description):
             "Use vivid football language, and close by either praising the player or suggesting tactical alternatives."
         )
         return [{"role": "user", "content": prompt}]
+class PassDescription_bayesian(Description):
+
+    output_token_limit = 500
+
+    @property
+    def gpt_examples_path(self):
+        return f"{self.gpt_examples_base}/action/passes.xlsx"
+
+    @property
+    def describe_paths(self):
+        return [f"{self.describe_base}/action/passes.xlsx"]
+
+    def __init__(self, pass_data, df_contributions_bayes, pass_id, competition):
+        self.pass_data = pass_data
+        self.df_contributions = df_contributions_bayes
+        self.pass_id = pass_id
+        self.competition = competition
+        super().__init__()
+
+    def synthesize_text(self):
+        #passes = self.pass_data.pass_df_bayesian[self.pass_data.pass_df_bayesian['id'] == self.pass_id]
+        passes = self.pass_data.df_pass[self.pass_data.df_pass['id'] == self.pass_id]
+        contributions = self.df_contributions[self.df_contributions['id'] == self.pass_id]
+        tracking = self.pass_data.df_tracking[self.pass_data.df_tracking['id'] == self.pass_id]
+
+        if passes.empty:
+            raise ValueError(f"No pass found with ID {self.pass_id}")
+
+        player_name = passes['passer_name'].iloc[0]
+        team_name = passes['team_name'].iloc[0]
+        x = passes['passer_x'].iloc[0]
+        y = passes['passer_y'].iloc[0]
+        team_direction = tracking['team_direction'].iloc[0]
+        xT = contributions['xT_predicted_bayes'].iloc[0]
+        xG = passes['possession_xg'].iloc[0]
+
+        pass_type = (
+            "forward pass" if passes['forward pass'].iloc[0]
+            else "back pass" if passes['backward pass'].iloc[0]
+            else "lateral pass" if passes['lateral pass'].iloc[0]
+            else "unspecified pass"
+        )
+
+        pass_features = {'pass_length' : passes['pass_length'].iloc[0]  ,
+                            'start_angle_to_goal' : passes['start_angle_to_goal'].iloc[0],
+                            'start_distance_to_goal' :passes['start_distance_to_goal'].iloc[0] ,
+                            'opponents_beyond':passes['opponents_beyond'].iloc[0],
+                            'opponents_between' : passes['opponents_between'].iloc[0], 
+                            'packing' : passes['packing'].iloc[0], 
+                            'average_speed_of_teammates' : passes['average_speed_of_teammates'].iloc[0], 
+                            'average_speed_of_opponents' : passes['average_speed_of_opponents'].iloc[0] ,
+                            'pressure_level_passer' : passes['pressure level passer'].iloc[0],
+                            'opponents_nearby' : passes['opponents_nearby'].iloc[0],
+                            'possession_xg' : passes['possession_xg'].iloc[0],
+                            'teammates_beyond' : passes['teammates_beyond'].iloc[0],
+                            'teammates_behind' : passes['teammates_behind'].iloc[0],
+                            'opponents_beyond' : passes['opponents_beyond'].iloc[0],
+                            'opponents_behind' : passes['opponents_behind'].iloc[0],
+                            'pressure_on_passer' : passes['pressure_on_passer'].iloc[0],
+                            'pass_angle' : passes['pass_angle'].iloc[0],
+                            'end_angle_to_goal' : passes['end_angle_to_goal'].iloc[0],
+                            'start_distance_to_sideline' : passes['start_distance_to_sideline'].iloc[0],
+                            'end_distance_to_sideline' : passes['end_distance_to_sideline'].iloc[0],
+                            'end_distance_to_goal' : passes['end_distance_to_goal'].iloc[0],
+                            'teammates_nearby' : passes['teammates_nearby'].iloc[0]                       
+                            }
+
+        feature_descriptions = sentences.describe_pass_features(pass_features, self.competition)
+
+        text = (
+            f"The pass is a {pass_type} originated from {sentences.describe_position_pass(x, y, team_direction)} "
+            f"\n and the passer is {player_name} from {team_name}."
+            f"{sentences.describe_xT_pass_1(xT, xG)}"
+        )
+        text += '\n'.join(feature_descriptions) + '\n'
+        text += '\n' + sentences.describe_pass_contributions_bayesian(contributions, pass_features)
+
+        with st.expander("Synthesized Text"):
+            st.write(text)
+
+        return text
+
+    def get_prompt_messages(self):
+        prompt = (
+            "You are a football commentator. Write an insightful 4-sentence summary of a pass. "
+            "Start by evaluating its overall effectiveness, including xT and xG. "
+            "Then, highlight the key tactical or spatial features that contributed to or limited its danger. "
+            "Use vivid football language, and close by either praising the player or suggesting tactical alternatives."
+        )
+        return [{"role": "user", "content": prompt}]
+
 
 
 
