@@ -52,7 +52,7 @@ from classes.visual import PassContributionPlot_Bayesian
 
 #from classes.data_source import show_mimic_tree_in_streamlit
 #from classes.data_source import generate_pass_counterfactuals_by_id
-from classes.visual import CounterfactualContributionPlot_XGBoost
+#from classes.visual import CounterfactualContributionPlot_XGBoost
 
 
     
