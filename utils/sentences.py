@@ -310,6 +310,47 @@ def describe_xT_pass_xNN(xT, xG):
 
     return description
 
+def describe_xT_pass_xgboost(xT, xG):
+    # Define percentile thresholds
+    xt_percentile_25 = -0.02270895206738621
+    xt_percentile_50 = -0.000917316022228995
+    xt_percentile_75 = 0.026505677450064418
+    xg_threshold = 0.066100
+
+    # Assign xT level label
+    if xT <= xt_percentile_25:
+        xt_label = "low"
+    elif xT <= xt_percentile_50:
+        xt_label = "moderate"
+    elif xT <= xt_percentile_75:
+        xt_label = "high"
+    else:
+        xt_label = "excellent"
+
+    # Calculate approximate shot probability
+    xt_prob = int(xT * 100)
+
+    # Generate description based on xT and xG
+    if xG != 0:
+        if xG < xg_threshold:
+            goal_quality = "a low-quality shot"
+        else:
+            goal_quality = "a dangerous shot on goal"
+
+        description = (
+            f"With an xT of {xT:.3f}, this pass had a **{xt_label} threat level**, implying about a {xt_prob}% chance of leading to a shot. "
+            f"It culminated in {goal_quality}, reflecting its attacking potential."
+        )
+    else:
+        description = (
+            f"This pass had an xT of {xT:.3f}, indicating a **{xt_label} chance** of creating a shot. "
+            f"However, no attempt on goal followed."
+        )
+
+    return description
+
+
+
 
 
 def describe_position_pass(x, y, team_direction):
@@ -1295,7 +1336,7 @@ feature_name_mapping_pass = { "start_distance_to_goal" : "start distance to goal
 }
 
 # Contribution function for xgboost
-def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
+def describe_pass_contributions_xgboost_old(feature_contrib_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
     text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
     
     # Extract the contributions from the pass_contributions DataFrame
@@ -1343,6 +1384,43 @@ def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, featu
         
 
     return text
+
+def describe_pass_contributions_xgboost(feature_contrib_df, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "Below is an analysis of the most influential features behind this pass’s predicted xT value:\n"
+
+    # Extract and clean the contribution values
+    contributions = feature_contrib_df.iloc[0].drop(['match_id', 'id', 'xT_predicted'])
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+
+    # Iterate through sorted features
+    for idx, (feature, abs_contrib) in enumerate(sorted_contributions.items()):
+        raw_contrib = contributions[feature]
+
+        # Only include features with meaningful contribution (above threshold)
+        if abs(raw_contrib) < 0.026505677450064418:
+            continue
+
+        # Get display name and value description
+        feature_display = feature_name_mapping.get(feature, feature.replace("_", " "))
+        feature_value = pass_features[feature]
+        feature_desc = describe_pass_single_feature(feature, feature_value)
+
+        # Determine direction of impact
+        if raw_contrib > 0:
+            direction = "boosted the threat value"
+        elif raw_contrib < 0:
+            direction = "lowered the predicted xT"
+        else:
+            direction = "had no notable effect"
+
+        # Write output text
+        if idx == 0:
+            text += f"\n- **{feature_display}** had the strongest impact: {feature_desc}. It significantly {direction}."
+        else:
+            text += f"\n- **{feature_display}** also influenced the outcome: {feature_desc}. It {direction}."
+
+    return text
+
 
 #contribution feature of xNN model
 def describe_pass_contributions_xNN_old(contributions_xNN, pass_features, feature_name_mapping=feature_name_mapping_pass):
