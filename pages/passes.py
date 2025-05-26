@@ -585,8 +585,8 @@ with tab6:
          pass_id          = selected_pass_id,
         competition      = selected_competition
      )
-    narrative = bayes_desc.stream_gpt(temperature=0.7)
-    st.markdown(f"**Narrative:**  \n\n{narrative}")
+    #narrative = bayes_desc.stream_gpt(temperature=0.7)
+    #st.markdown(f"**Narrative:**  \n\n{narrative}")
     
     excluded_cols=["xT_predicted_bayes","id","match_id"]
     metrics = [col for col in df_cb.columns if col not in excluded_cols]
@@ -617,7 +617,7 @@ with tab6:
 
 
     to_hash = ("Bayesian Classification Tree",selected_match_id, pass_id)
-    summaries = descriptions.stream_gpt()
+    summaries = bayes_desc.stream_gpt()
     chat = create_chat(to_hash, Chat)
 
     if summaries:
