@@ -40,10 +40,10 @@ from utils.utils import SimplerNet
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic, PassContributionPlot_XGBoost,PassContributionPlot_Mimic,Distributionplot_xnn_models,model_contribution_xnn,Distributionplot_xnn_pressure
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_Logistic_event,PassContributionPlot_Logistic_pressure,PassContributionPlot_Logistic_speed,PassContributionPlot_Logistic_position,DistributionPlot_position_model,DistributionPlot_speed_models,DistributionPlot_logistic
-from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic
+from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN,PassDescription_mimic, PassDescription_TabNet
 from classes.data_source import Passes
 from classes.visual import DistributionPlot,PassContributionPlot_Logistic,PassVisual,PassContributionPlot_Xnn,xnn_plot,PassContributionPlot_XGBoost,PassContributionPlot_TabNet
-from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN
+from classes.description import PassDescription_logistic,PassDescription_xgboost, PassDescription_xNN, PassDescription_TabNet
 from classes.chat import Chat
 #from classes.data_source import show_mimic_tree_in_streamlit
 
@@ -387,6 +387,14 @@ with tab4:
     st.markdown("<h3 style='font-size:18px; color:black;'>Feature contribution from TabNet model</h3>", unsafe_allow_html=True)
     feature_contrib_tabnet = pass_data.contributions_tabnet
     st.write(feature_contrib_tabnet.astype(str))
+    contributions_tabnet = pass_data.contributions_tabnet
+
+
+    descriptions = PassDescription_TabNet(pass_data,contributions_tabnet,pass_id, selected_competition)
+    
+    to_hash = ("TabNet",selected_match_id, pass_id)
+    summaries = descriptions.stream_gpt()
+    chat = create_chat(to_hash, Chat)
 
         # Define which features to plot (exclude non-feature columns)
     excluded_columns = ['Predicted_Probability', 'id', 'match_id']

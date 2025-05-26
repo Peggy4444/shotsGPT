@@ -1278,3 +1278,127 @@ def describe_pass_contributions_mimic(contributions_mimic_df, pass_features, fea
                 text += f"\nAnother key feature is {feature_display_name}, which had a {impact} because {feature_value_description}. This feature {impact_text}"
 
     return text
+
+
+
+
+# #contribution feature of TabNet model
+def describe_pass_contributions_TabNet(contributions_tabnet, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "The contributions of the features to the xT, sorted by their magnitude from largest to smallest, are as follows:\n"
+    
+    # Extract the contributions from the pass_contributions
+    contributions = contributions_tabnet.iloc[0].drop(['match_id', 'id', 'Predicted_Probability'])  # Drop irrelevant columns
+    
+    # Sort the contributions by their absolute value (magnitude) in descending order
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+    
+    # Get the top 4 contributions
+    top_contributions = sorted_contributions
+    
+    # Loop through the top contributions to generate descriptions
+    for idx, (feature, contribution) in enumerate(top_contributions.items()):
+
+        # Get the original sign of the contribution
+        original_contribution = contributions[feature]
+
+        if original_contribution >= 0.01 or original_contribution <= -0.01:
+            
+            # Use feature_name_mapping to get the display name for the feature (if available)
+            feature_display_name = feature_name_mapping.get(feature, feature)
+            
+            # Get the feature value from shot_features
+            feature_value = pass_features[feature]
+            
+            # Get the feature description
+            feature_value_description = describe_pass_single_feature(feature, feature_value)
+            
+            # Add the feature's contribution to the xT description
+            if original_contribution > 0:
+                impact = 'maximum positive contribution'
+                impact_text = "increased the xT."
+            elif original_contribution < 0:
+                impact = 'maximum negative contribution'
+                impact_text = "reduced the xT."
+            else:
+                impact = 'no contribution'
+                impact_text = "had no impact on the xT."
+
+            # Use appropriate phrasing for the first feature and subsequent features
+            if idx == 0:
+                text += f"\nThe most impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+            else:
+                text += f"\nAnother impactful feature is {feature_display_name}, which had the {impact} because {feature_value_description}. This feature {impact_text}"
+        
+
+    return text
+
+def describe_pass_contributions_IG(contributions_ig, pass_features, feature_name_mapping=feature_name_mapping_pass):
+    text = "Below is an analysis of the most influential features affecting the model's assessment of this pass's danger level:\n"
+
+    # Extract contributions (attributions from IG)
+    contributions = contributions_ig.iloc[0].drop(['id', 'Predicted_Probability'])
+    sorted_contributions = contributions.abs().sort_values(ascending=False)
+
+    for idx, (feature, abs_contrib) in enumerate(sorted_contributions.items()):
+        raw_contrib = contributions[feature]
+
+        # # Filter by impact threshold
+        # if abs(raw_contrib) < 0.00788100733068301:
+        #     continue
+
+        # Get readable feature name + value
+        feature_display = feature_name_mapping.get(feature, feature.replace("_", " "))
+        feature_value = pass_features[feature]
+        feature_desc = describe_pass_single_feature(feature, feature_value)
+
+        # Interpret direction
+        if raw_contrib > 0:
+            direction = "increased the model's confidence in this pass being dangerous"
+        elif raw_contrib < 0:
+            direction = "led the model to be less confident about the pass's danger"
+        else:
+            direction = "had no meaningful influence on the model's confidence"
+
+        # Add to text
+        if idx == 0:
+            text += f"\n- **{feature_display}** had the strongest influence: {feature_desc}. It significantly {direction}."
+        else:
+            text += f"\n- **{feature_display}** also stood out: {feature_desc}. It {direction}."
+
+    return text
+
+
+# def describe_pass_contributions_tabnet(contributions_tabnet, pass_features, feature_name_mapping=feature_name_mapping_pass):
+#     text = "Below is an analysis of the most influential features affecting the model's assessment of this pass's danger level:\n"
+
+#     # Extract contributions (attributions from IG)
+#     contributions = contributions_tabnet.iloc[0].drop(['id', 'Predicted_Probability'])
+#     sorted_contributions = contributions.abs().sort_values(ascending=False)
+
+#     for idx, (feature, abs_contrib) in enumerate(sorted_contributions.items()):
+#         raw_contrib = contributions[feature]
+
+#         # Filter by impact threshold
+#         # if abs(raw_contrib) < 0.00788100733068301:
+#             # continue
+
+#         # Get readable feature name + value
+#         feature_display = feature_name_mapping.get(feature, feature.replace("_", " "))
+#         feature_value = pass_features[feature]
+#         feature_desc = describe_pass_single_feature(feature, feature_value)
+
+#         # Interpret direction
+#         if raw_contrib > 0:
+#             direction = "increased the model's confidence in this pass being dangerous"
+#         elif raw_contrib < 0:
+#             direction = "led the model to be less confident about the pass's danger"
+#         else:
+#             direction = "had no meaningful influence on the model's confidence"
+
+#         # Add to text
+#         if idx == 0:
+#             text += f"\n- **{feature_display}** had the strongest influence: {feature_desc}. It significantly {direction}."
+#         else:
+#             text += f"\n- **{feature_display}** also stood out: {feature_desc}. It {direction}."
+
+#     return text

@@ -1885,54 +1885,54 @@ class Passes(Data):
                 return None        
 
 
-    # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
-    #     # Validate inputs first
-    #     if pass_df_tabnet is None or pass_df_tabnet.empty:
-    #         raise ValueError("Input DataFrame is empty or None")
-    #     if tabnet_model is None:
-    #         raise ValueError("TabNet model is not loaded")
-    #     if scaler is None:
-    #         raise ValueError("Scaler is not loaded")
+    def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
+        # Validate inputs first
+        if pass_df_tabnet is None or pass_df_tabnet.empty:
+            raise ValueError("Input DataFrame is empty or None")
+        if tabnet_model is None:
+            raise ValueError("TabNet model is not loaded")
+        if scaler is None:
+            raise ValueError("Scaler is not loaded")
 
-    #     try:
-    #         # Get feature names
-    #         feature_cols = self.load_feature_names()
-    #         if not feature_cols:
-    #             raise ValueError("Failed to load feature names")
+        try:
+            # Get feature names
+            feature_cols = self.load_feature_names()
+            if not feature_cols:
+                raise ValueError("Failed to load feature names")
 
-    #         # Validate DataFrame columns
-    #         missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
-    #         if missing_features:
-    #             raise ValueError(f"Missing required features: {missing_features}")
+            # Validate DataFrame columns
+            missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+            if missing_features:
+                raise ValueError(f"Missing required features: {missing_features}")
 
-    #         # Preprocess data
-    #         X = pass_df_tabnet[feature_cols].values.astype(np.float32)
-    #         X_scaled = scaler.transform(X)
+            # Preprocess data
+            X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+            X_scaled = scaler.transform(X)
             
-    #         # Convert to tensor
-    #         X_tensor = torch.tensor(X_scaled, dtype=torch.float32, requires_grad=True)
+            # Convert to tensor
+            X_tensor = torch.tensor(X_scaled, dtype=torch.float32, requires_grad=True)
 
-    #         # Calculate gradients
-    #         tabnet_model.network.eval()
-    #         with torch.set_grad_enabled(True):
-    #             output = tabnet_model.network(X_tensor)[0][:, 1]
-    #             output.sum().backward()
-    #             gradients = X_tensor.grad.detach().numpy()
+            # Calculate gradients
+            tabnet_model.network.eval()
+            with torch.set_grad_enabled(True):
+                output = tabnet_model.network(X_tensor)[0][:, 1]
+                output.sum().backward()
+                gradients = X_tensor.grad.detach().numpy()
 
-    #         # Calculate contributions
-    #         gradient_input = gradients * X_scaled
+            # Calculate contributions
+            gradient_input = gradients * X_scaled
 
-    #         # Create results DataFrame
-    #         contributions_df = pd.DataFrame(gradient_input, columns=feature_cols)
-    #         contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
-    #         contributions_df['Predicted_Probability'] = output.detach().numpy()
+            # Create results DataFrame
+            contributions_df = pd.DataFrame(gradient_input, columns=feature_cols)
+            contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+            contributions_df['Predicted_Probability'] = output.detach().numpy()
 
-    #         return contributions_df
+            return contributions_df
 
-    #     except Exception as e:
-    #         st.error(f"Feature contribution error: {str(e)}")
-    #         raise RuntimeError(f"Feature calculation failed: {e}") from e        
-    #    ##working^^^^
+        except Exception as e:
+            st.error(f"Feature contribution error: {str(e)}")
+            raise RuntimeError(f"Feature calculation failed: {e}") from e        
+       ##working^^^^
 
     # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
     #     import torch
@@ -1996,76 +1996,155 @@ class Passes(Data):
     #         raise RuntimeError(f"Feature calculation failed: {e}") from e
 
 ##### SHAP^^
-    def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
-        import torch
-        import numpy as np
-        import pandas as pd
-        from captum.attr import IntegratedGradients
+    # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
+    #     import torch
+    #     import numpy as np
+    #     import pandas as pd
+    #     from captum.attr import IntegratedGradients
 
-        if pass_df_tabnet is None or pass_df_tabnet.empty:
-            raise ValueError("Input DataFrame is empty or None")
-        if tabnet_model is None:
-            raise ValueError("TabNet model is not loaded")
-        if scaler is None:
-            raise ValueError("Scaler is not loaded")
+    #     if pass_df_tabnet is None or pass_df_tabnet.empty:
+    #         raise ValueError("Input DataFrame is empty or None")
+    #     if tabnet_model is None:
+    #         raise ValueError("TabNet model is not loaded")
+    #     if scaler is None:
+    #         raise ValueError("Scaler is not loaded")
 
-        try:
-            feature_cols = self.load_feature_names()
-            if not feature_cols:
-                raise ValueError("Failed to load feature names")
+    #     try:
+    #         feature_cols = self.load_feature_names()
+    #         if not feature_cols:
+    #             raise ValueError("Failed to load feature names")
 
-            missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
-            if missing_features:
-                raise ValueError(f"Missing required features: {missing_features}")
+    #         missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+    #         if missing_features:
+    #             raise ValueError(f"Missing required features: {missing_features}")
 
-            # Preprocess input
-            X = pass_df_tabnet[feature_cols].values.astype(np.float32)
-            X_scaled = scaler.transform(X)
-            X_tensor = torch.tensor(X_scaled, dtype=torch.float32, requires_grad=True)
+    #         # Preprocess input
+    #         X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+    #         X_scaled = scaler.transform(X)
+    #         X_tensor = torch.tensor(X_scaled, dtype=torch.float32, requires_grad=True)
 
-            # ✅ Use the internal PyTorch model directly
-            model = tabnet_model.network
-            model.eval()
+    #         # ✅ Use the internal PyTorch model directly
+    #         model = tabnet_model.network
+    #         model.eval()
 
-            # ✅ Define the forward function for Captum using torch model
-            def forward_func(inputs):
-                logits, _ = model(inputs)
-                probs = torch.softmax(logits, dim=1)
-                return probs[:, 1]  # return positive class probability
+    #         # ✅ Define the forward function for Captum using torch model
+    #         def forward_func(inputs):
+    #             logits, _ = model(inputs)
+    #             probs = torch.softmax(logits, dim=1)
+    #             return probs[:, 1]  # return positive class probability
 
-            # Integrated Gradients
-            ig = IntegratedGradients(forward_func)
-            baseline = torch.zeros_like(X_tensor)
+    #         # Integrated Gradients
+    #         ig = IntegratedGradients(forward_func)
+    #         baseline = torch.zeros_like(X_tensor)
 
-            attributions, delta = ig.attribute(
-                X_tensor,
-                baselines=baseline,
-                n_steps=50,
-                return_convergence_delta=True
-            )
+    #         attributions, delta = ig.attribute(
+    #             X_tensor,
+    #             baselines=baseline,
+    #             n_steps=50,
+    #             return_convergence_delta=True
+    #         )
 
-            attributions = attributions.detach().numpy()
-            y_pred_proba = tabnet_model.predict_proba(X_scaled)[:, 1]
+    #         attributions = attributions.detach().numpy()
+    #         y_pred_proba = tabnet_model.predict_proba(X_scaled)[:, 1]
 
-            if attributions.shape[0] != y_pred_proba.shape[0]:
-                raise ValueError(f"Mismatch between attributions ({attributions.shape[0]}) and output ({y_pred_proba.shape[0]})")
+    #         if attributions.shape[0] != y_pred_proba.shape[0]:
+    #             raise ValueError(f"Mismatch between attributions ({attributions.shape[0]}) and output ({y_pred_proba.shape[0]})")
 
-            contributions_df = pd.DataFrame(attributions, columns=feature_cols)
-            contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
-            contributions_df['Predicted_Probability'] = y_pred_proba
+    #         contributions_df = pd.DataFrame(attributions, columns=feature_cols)
+    #         contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+    #         contributions_df['Predicted_Probability'] = y_pred_proba
 
-            if np.any(np.abs(delta.detach().numpy()) > 1e-3):
-                print("⚠️ Convergence delta is high, results may be approximate.")
+    #         if np.any(np.abs(delta.detach().numpy()) > 1e-3):
+    #             print("⚠️ Convergence delta is high, results may be approximate.")
 
-            return contributions_df
+    #         return contributions_df
 
-        except Exception as e:
-            import streamlit as st
-            st.error(f"Feature contribution error: {str(e)}")
-            raise RuntimeError(f"Feature calculation failed: {e}") from e
+    #     except Exception as e:
+    #         import streamlit as st
+    #         st.error(f"Feature contribution error: {str(e)}")
+    #         raise RuntimeError(f"Feature calculation failed: {e}") from e
 
 
 ###working ^^^
+
+    # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler):
+    #     import shap
+    #     import numpy as np
+    #     import pandas as pd
+
+    #     if pass_df_tabnet is None or pass_df_tabnet.empty:
+    #         raise ValueError("Input DataFrame is empty or None")
+    #     if tabnet_model is None:
+    #         raise ValueError("TabNet model is not loaded")
+    #     if scaler is None:
+    #         raise ValueError("Scaler is not loaded")
+
+    #     try:
+    #         feature_cols = self.load_feature_names()
+    #         if not feature_cols:
+    #             raise ValueError("Failed to load feature names")
+
+    #         missing_features = [col for col in feature_cols if col not in pass_df_tabnet.columns]
+    #         if missing_features:
+    #             raise ValueError(f"Missing required features: {missing_features}")
+
+    #         # Preprocess input
+    #         X = pass_df_tabnet[feature_cols].values.astype(np.float32)
+    #         X_scaled = scaler.transform(X)
+
+    #         # Use a small random sample as background data
+    #         background = X_scaled[np.random.choice(X_scaled.shape[0], min(100, X_scaled.shape[0]), replace=False)]
+
+    #         # Define prediction function
+    #         def predict_fn(data):
+    #             return tabnet_model.predict_proba(data)
+
+    #         # Initialize Kernel SHAP
+    #         explainer = shap.KernelExplainer(predict_fn, background)
+    #         shap_values = explainer.shap_values(X_scaled)
+
+    #         # Use shap_values[1] for the positive class (xT = 1)
+    #         contribution_matrix = shap_values[1]  # shape: (n_samples, n_features)
+
+    #         # Mean-center contributions like β×x - mean(β×x)
+    #         contribution_matrix_centered = contribution_matrix - np.mean(contribution_matrix, axis=0)
+
+    #         # Predicted probabilities
+    #         y_pred_proba = tabnet_model.predict_proba(X_scaled)[:, 1]
+
+    #         # Assemble DataFrame
+    #         contributions_df = pd.DataFrame(contribution_matrix_centered, columns=feature_cols)
+    #         contributions_df.insert(0, 'id', pass_df_tabnet['id'].values)
+    #         contributions_df['Predicted_Probability'] = y_pred_proba
+
+    #         return contributions_df
+
+    #     except Exception as e:
+    #         import streamlit as st
+    #         st.error(f"Feature contribution error: {str(e)}")
+    #         raise RuntimeError(f"Feature calculation failed: {e}") from e
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     # def get_feature_contributions_tabnet(self, pass_df_tabnet, tabnet_model, scaler, feature_cols):
