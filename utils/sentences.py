@@ -1575,8 +1575,9 @@ def describe_pass_contributions_bayesian(contributions_bayes_df, pass_features, 
 
 
 def describe_pass_contributions_TabNet(contributions_tabnet, pass_features, feature_name_mapping=feature_name_mapping_pass):
-    text = "The model’s prediction for this pass was shaped by the following features, listed in order of their influence on the model’s confidence:\n"
-    
+    #text = "The model’s prediction for this pass was shaped by the following features, listed in order of their influence on the model’s confidence:\n"
+    text = "The most influencial features which makes pass threatful are as follows :"
+
     # Extract the contributions from the pass_contributions
     contributions = contributions_tabnet.iloc[0].drop(['match_id', 'id', 'Predicted_Probability'])  # Drop irrelevant columns
     
@@ -1597,13 +1598,15 @@ def describe_pass_contributions_TabNet(contributions_tabnet, pass_features, feat
 
         # IG-specific language
         if original_contribution > 0:
-            direction = "increased the model's confidence in this pass being dangerous"
+            #direction = "increased the model's confidence in this pass being dangerous"
+            direction = "increased the threat of the pass"
             impact = "strong positive influence"
         elif original_contribution < 0:
-            direction = "led the model to be less confident about the danger of this pass"
+            #direction = "led the model to be less confident about the danger of this pass"
+            direction = "decreased the threat of the pass"
             impact = "strong negative influence"
         else:
-            direction = "did not noticeably affect the model's assessment"
+            direction = "did not noticeably affect the pass"
             impact = "neutral influence"
 
         if idx == 0:
