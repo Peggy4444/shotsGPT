@@ -1545,7 +1545,7 @@ def describe_pass_contributions_bayesian(contributions_bayes_df, pass_features, 
     text = "The contributions of the features to the xT (Bayesian Tree model), sorted by their magnitude from largest to smallest, are as follows:\n"
 
     # Drop irrelevant columns
-    contributions = contributions_bayes_df.iloc[0].drop(['match_id', 'id'])
+    contributions = contributions_bayes_df.iloc[0].drop(['match_id', 'id','xT_predicted_bayes'])
 
     # Sort by absolute value
     sorted_contributions = contributions.abs().sort_values(ascending=False)
@@ -1554,7 +1554,7 @@ def describe_pass_contributions_bayesian(contributions_bayes_df, pass_features, 
         original_contribution = contributions[feature]
 
         # Thresholding — tweak if needed
-        if abs(original_contribution) >= 0.01:
+        if abs(original_contribution) >= 0.001:
             feature_display_name = feature_name_mapping.get(feature, feature)
             feature_value = pass_features.get(feature, None)
             feature_value_description = describe_pass_single_feature(feature, feature_value)
