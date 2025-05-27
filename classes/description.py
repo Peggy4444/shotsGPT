@@ -1170,7 +1170,7 @@ class PassDescription_TabNet(Description):
             
             return pass_description 
 
-        def get_prompt_messages(self):
+        def get_prompt_messages1(self):
             prompt = (
                 "You are a football commentator. You should write in an exciting and engaging way about a shot"
                 f"You should giva a four sentence summary of the shot taken by the player. "
@@ -1181,4 +1181,18 @@ class PassDescription_TabNet(Description):
                 "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
                 )
             return [{"role": "user", "content": prompt}]
+        
+        def get_prompt_messages(self):
+            prompt = (
+                "You are a football commentator. You should write in an exciting and insightful way about a shot taken by a player."
+                " Your job is to explain whether the model predicted the shot to be dangerous or not, based on the features influencing the model’s confidence."
+                " Write a four-sentence summary of the shot: "
+                "The first sentence should state whether it was a good chance or not, including the expected goals value (xG), and whether it resulted in a goal. "
+                "The second and third sentences should describe which aspects of the situation most influenced the model’s assessment of the chance. "
+                "If it was a good chance, explain what factors increased the model’s confidence in the shot being dangerous. "
+                "If it wasn't a good chance, explain what factors led the model to be less confident. "
+                "In the final sentence, based on the quality of the chance, either praise the player for finding a strong opportunity or offer advice on how to create better chances in the future."
+            )
+            return [{"role": "user", "content": prompt}]
+
 

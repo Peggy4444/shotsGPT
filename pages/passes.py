@@ -358,38 +358,38 @@ with tab3:
     visuals_xgboost.show()
 
     # Show the XGBoost counterfactual plot
-    #st.markdown("<h3 style='font-size:24px; color:black;'>XGBoost counterfactual plot</h3>", unsafe_allow_html=True)
+    # st.markdown("<h3 style='font-size:24px; color:black;'>XGBoost counterfactual plot</h3>", unsafe_allow_html=True)
 
-    # Explanation for the slider
-    #st.markdown(
-    #"""
-    #Use the slider below to set a threshold for expected threat (xT).
-    #Counterfactual examples where the predicted xT exceeds this value will be shown.
-    #""",
-    #unsafe_allow_html=True
-    #)
+    # # Explanation for the slider
+    # st.markdown(
+    # """
+    # Use the slider below to set a threshold for expected threat (xT).
+    # Counterfactual examples where the predicted xT exceeds this value will be shown.
+    # """,
+    # unsafe_allow_html=True
+    # )
 
-    # Add a slider to the sidebar or main app
-    #threshold = st.slider(
-    #label="Set expected threat (xT) threshold",
-    #min_value=0.04,
-    #max_value=0.65,
-    #value=0.5,      # default value shown initially
-    #step=0.01       # how much the slider moves with each step
-    #)
+    # # Add a slider to the sidebar or main app
+    # threshold = st.slider(
+    # label="Set expected threat (xT) threshold",
+    # min_value=0.04,
+    # max_value=0.65,
+    # value=0.5,      # default value shown initially
+    # step=0.01       # how much the slider moves with each step
+    # )
 
-    # Display the selected value to the user
-    #st.write(f"You selected xT threshold: {threshold}")
+    # # Display the selected value to the user
+    # st.write(f"You selected xT threshold: {threshold}")
 
-    #passes_instance = Passes(competition=selected_competition, match_id=selected_match_id)
-    #xGB_model = passes_instance.load_xgboost_model(selected_competition)
+    # passes_instance = Passes(competition=selected_competition, match_id=selected_match_id)
+    # xGB_model = passes_instance.load_xgboost_model(selected_competition)
 
 
-    # Run counterfactual generation
-    #result_df, pred_prob, shap_df_cf =passes_instance.generate_pass_counterfactuals_by_id(selected_pass_id=selected_pass_id,pass_df_xgboost=pass_df_xgboost,xGB_model=xGB_model,
-    #                                                threshold=threshold,total_CFs=1)
+    # # Run counterfactual generation
+    # result_df, pred_prob, shap_df_cf =passes_instance.generate_pass_counterfactuals_by_id(selected_pass_id=selected_pass_id,pass_df_xgboost=pass_df_xgboost,xGB_model=xGB_model,
+    #                                                 threshold=threshold,total_CFs=1)
 
-    #st.info(f"xT for selected pass ({selected_pass_id}) = {pred_prob:.3f}")
+    # st.info(f"xT for selected pass ({selected_pass_id}) = {pred_prob:.3f}")
 
     #if result_df.empty:
     #    st.warning(f"Original xT ({pred_prob:.3f}) already exceeds threshold ({threshold}) — skipping counterfactual generation.")
@@ -397,26 +397,26 @@ with tab3:
     #    st.subheader("Counterfactuals for this pass")
     #    st.dataframe(result_df)
 
-    #if result_df.empty:
-    #    if pred_prob > threshold:
-    #        st.warning(f"Original xT ({pred_prob:.3f}) already exceeds threshold ({threshold}) — skipping counterfactual generation.")
-    #    else:
-    #        st.warning("No counterfactuals could be generated for this pass — the model couldn’t find a better option.")
-    #else:
-    #    st.subheader("Counterfactuals for this pass")
-    #    st.dataframe(result_df)
+    # if result_df.empty:
+    #     if pred_prob > threshold:
+    #         st.warning(f"Original xT ({pred_prob:.3f}) already exceeds threshold ({threshold}) — skipping counterfactual generation.")
+    #     else:
+    #         st.warning("No counterfactuals could be generated for this pass — the model couldn’t find a better option.")
+    # else:
+    #     st.subheader("Counterfactuals for this pass")
+    #     st.dataframe(result_df)
 
-    #if not shap_df_cf.empty:
-    #    st.subheader("SHAP Contributions for Counterfactual Pass")
-    #    st.dataframe(shap_df_cf)
-    #    shap_df_cf_long = shap_df_cf.T.reset_index()
-    #    shap_df_cf_long.columns = ["feature", "shap_value"]
-    #    shap_df_cf_long["feature_value"] = shap_df_cf.iloc[0].values
+    # if not shap_df_cf.empty:
+    #     st.subheader("SHAP Contributions for Counterfactual Pass")
+    #     st.dataframe(shap_df_cf)
+    #     shap_df_cf_long = shap_df_cf.T.reset_index()
+    #     shap_df_cf_long.columns = ["feature", "shap_value"]
+    #     shap_df_cf_long["feature_value"] = shap_df_cf.iloc[0].values
 
     
-    #    plotter = CounterfactualContributionPlot_XGBoost(shap_df_cf_long)
-    #    fig = plotter.plot()
-    #    st.plotly_chart(fig, use_container_width=True)
+        # plotter = CounterfactualContributionPlot_XGBoost(shap_df_cf_long)
+        # fig = plotter.plot()
+        # st.plotly_chart(fig, use_container_width=True)
     # Show results
     #st.subheader("Counterfactuals for this pass")
     #st.dataframe(result_df)
