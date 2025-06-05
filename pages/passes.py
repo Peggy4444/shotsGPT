@@ -351,9 +351,9 @@ with tab3:
 
     visuals_xgboost = PassContributionPlot_XGBoost(feature_contrib_df=feature_contrib_df,pass_df_xgboost=pass_df_xgboost,metrics=metrics)
     visuals_xgboost.add_passes(pass_df_xgboost, metrics, selected_pass_id=selected_pass_id)
+    visuals_xgboost.annotate = True
     visuals_xgboost.add_pass(feature_contrib_df=feature_contrib_df,pass_df_xgboost=pass_df_xgboost,
     pass_id=selected_pass_id,metrics=metrics,selected_pass_id=selected_pass_id)
-
 
     visuals_xgboost.show()
 

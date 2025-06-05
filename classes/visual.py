@@ -1674,7 +1674,7 @@ class PassContributionPlot_Logistic_event(Distributionplot_xnn_models):
         )
 
 
-class PassContributionPlot_XGBoost(DistributionPlot):
+class PassContributionPlot_XGBoost(xnn_plot):
     def __init__(self, feature_contrib_df, pass_df_xgboost, metrics, **kwargs):
         self.feature_contrib_df = feature_contrib_df
         self.pass_df_xgboost = pass_df_xgboost
@@ -1716,23 +1716,23 @@ class PassContributionPlot_XGBoost(DistributionPlot):
         )
 
         # Annotate features
-        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
-            feature_value = feature_values[feature_column]
-            self.fig.add_annotation(
-                x=contributions[metric],
-                #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
+        # for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+        #     feature_value = feature_values[feature_column]
+        #     self.fig.add_annotation(
+        #         x=contributions[metric],
+        #         #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
 
-                y=i * 1.0 + 0.5,
-                xanchor="center",
-                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
-                showarrow=False,
-                font={
-                "color": rgb_to_color(self.dark_green),
-                "family": "Gilroy-Light",
-                "size": 11 * self.font_size_multiplier,
-                },
-            align="center",
-            )
+        #         y=i * 1.0 + 0.5,
+        #         xanchor="center",
+        #         text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+        #         showarrow=False,
+        #         font={
+        #         "color": rgb_to_color(self.dark_green),
+        #         "family": "Gilroy-Light",
+        #         "size": 11 * self.font_size_multiplier,
+        #         },
+        #     align="center",
+        #     )
 
 
 
@@ -1804,24 +1804,24 @@ class PassContributionPlot_XGBoost(DistributionPlot):
             hover_string="<br>".join(hover_text)
         )
 
-        # Annotate features
-        for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
-            feature_value = feature_values[feature_column]
-            self.fig.add_annotation(
-                x=contributions[metric],
-                #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
+        # # Annotate features
+        # for i, (metric, feature_column) in enumerate(zip(metrics, feature_columns)):
+        #     feature_value = feature_values[feature_column]
+        #     self.fig.add_annotation(
+        #         x=contributions[metric],
+        #         #y=i * 1.5 + 0.5,  # or 2.0 for more spacing
 
-                y=i * 1.0 + 0.5,
-                xanchor="center",
-                text=f"{format_metric(feature_column)}: {feature_value:.2f}",
-                showarrow=False,
-                font={
-                "color": rgb_to_color(self.dark_green),
-                "family": "Gilroy-Light",
-                "size": 11 * self.font_size_multiplier,
-                },
-            align="center",
-            )
+        #         y=i * 1.0 + 0.5,
+        #         xanchor="center",
+        #         text=f"{format_metric(feature_column)}: {feature_value:.2f}",
+        #         showarrow=False,
+        #         font={
+        #         "color": rgb_to_color(self.dark_green),
+        #         "family": "Gilroy-Light",
+        #         "size": 11 * self.font_size_multiplier,
+        #         },
+        #     align="center",
+        #     )
 
 
 
