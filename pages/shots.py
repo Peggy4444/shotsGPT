@@ -1,9 +1,16 @@
 # Library imports
 from pathlib import Path
 import sys
+import os
+
 # path_root = Path(__file__).parents[1]
 # print(path_root)
 # sys.path.append(str(path_root))
+from pathlib import Path
+import sys
+
+path_root = Path(__file__).resolve().parents[1]
+sys.path.append(str(path_root))
 
 #importing necessary libraries
 from mplsoccer import Sbopen
@@ -28,6 +35,15 @@ rn.seed(1)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import streamlit as st
+#st.write("CWD:", os.getcwd())
+#st.write("File:", __file__)
+from settings import USE_GEMINI, GEMINI_API_KEY, GEMINI_CHAT_MODEL
+import google.generativeai as genai
+genai.configure(api_key=GEMINI_API_KEY)
+
+#for m in genai.list_models():
+    #st.write(m.name, m.supported_generation_methods)
+
 import pandas as pd
 import numpy as np
 import argparse
@@ -48,19 +64,14 @@ def load_css(file_name):
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
-from utils.page_components import (
-    add_common_page_elements
-)
-
-
 from classes.chat import PlayerChat
 
 from utils.page_components import add_common_page_elements
 from utils.utils import select_player, create_chat
 
-sidebar_container = add_common_page_elements()
-page_container = st.sidebar.container()
-sidebar_container = st.sidebar.container()
+#sidebar_container = add_common_page_elements()
+#page_container = st.sidebar.container()
+# sidebar_container = st.sidebar.container()
 
 st.divider()
 
@@ -71,6 +82,7 @@ st.markdown("## Shot commentator")
 #match_ids = df_match['match_id'].unique()
 competitions = {
     "EURO Men 2024": "data/match_id_to_name_EURO_2024.json",
+    "EURO Women 2025": "data/match_id_to_name_EURO_2025.json",
     "EURO Men 2020": "data/match_id_to_name_EURO_2020.json",
     "National Women's Soccer League (NWSL) 2018": "data/match_id_to_name_NWSL.json",
     "FIFA 2022": "data/match_id_to_name_FIFA_2022.json",

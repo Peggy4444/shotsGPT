@@ -76,6 +76,7 @@ def describe_xg(xG):
 def read_feature_thresholds(competition):
         competitions_dict_prams = {
         "EURO Men 2024": "data/feature_description_EURO_Men_2024.xlsx",
+        "EURO Women 2025": "data/feature_description_EURO_2025.xlsx",
         "National Women's Soccer League (NWSL) 2018": "data/feature_description_NWSL.xlsx",
         "FIFA 2022": "data/feature_description_FIFA_2022.xlsx",
         "Women's Super League (FAWSL) 2017-18": "data/feature_description_FAWSL.xlsx",
@@ -85,6 +86,7 @@ def read_feature_thresholds(competition):
         file_path = competitions_dict_prams.get(competition)
         thresh_file = pd.read_excel(file_path)
         return thresh_file
+
 
         
 
@@ -349,10 +351,10 @@ def describe_shot_contributions(shot_contributions, shot_features, feature_name_
             
             # Add the feature's contribution to the xG description
             if original_contribution > 0:
-                impact = 'maximum positive contribution'
+                impact = 'positive contribution'
                 impact_text = "increased the xG of the shot."
             elif original_contribution < 0:
-                impact = 'maximum negative contribution'
+                impact = 'negative contribution'
                 impact_text = "reduced the xG of the shot."
             else:
                 impact = 'no contribution'

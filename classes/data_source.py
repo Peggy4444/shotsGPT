@@ -388,10 +388,6 @@ class CountryStats(Stats):
         )
 
 
-
-
-
-
 class Shots(Data):
 
     data_point_class = data_point.Individual
@@ -697,6 +693,7 @@ class Shots(Data):
     def read_model_params(self, competition):
         competitions_dict_prams = {
         "EURO Men 2024": "data/model_params_EURO_2024.xlsx",
+        "EURO Women 2025": "data/model_params_EURO_2025.xlsx",
         "National Women's Soccer League (NWSL) 2018": "data/model_params_NWSL.xlsx",
         "FIFA 2022": "data/model_params_FIFA_2022.xlsx",
         "Women's Super League (FAWSL) 2017-18": "data/model_params_FAWSL.xlsx",
@@ -739,7 +736,7 @@ class Shots(Data):
             df_shots[contribution_col] = df_shots[param_name] * param_value
 
             # Mean-center the contributions
-            df_shots[contribution_col] -= df_shots[contribution_col].mean()
+            #df_shots[contribution_col] -= df_shots[contribution_col].mean()
 
         # Prepare contributions dataframe
         df_contribution = df_shots[['id', 'match_id'] + [col for col in df_shots.columns if 'contribution' in col]]
@@ -764,17 +761,12 @@ class Shots(Data):
 
         return df_contribution
     
-
-    
-    
-
-
-
     @staticmethod
     def load_model(competition):
 
         competitions_dict = {
         "EURO Men 2024": "data/xg_model_EURO_2024.sav",
+        "EURO Women 2025": "data/xg_model_EURO_2025.sav",
         "National Women's Soccer League (NWSL) 2018": "data/xg_model_NWSL.sav",
         "FIFA 2022": "data/xg_model_FIFA_2022.sav",
         "Women's Super League (FAWSL) 2017-18": "data/xg_model_FAWSL.sav",
@@ -811,14 +803,6 @@ class Shots(Data):
         ser_metrics = self.df_shots.squeeze()
 
         return self.data_point_class(id=id,ser_metrics=ser_metrics)
-
-        
-
-
-
-
-
-
 
 
 

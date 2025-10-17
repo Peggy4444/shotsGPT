@@ -323,107 +323,6 @@ class PlayerDescription(Description):
         return [{"role": "user", "content": prompt}]
 
 
-
-
-
-class ShotDescription(Description):
-
-    output_token_limit = 500
-
-    @property
-    def gpt_examples_path(self):
-        return f"{self.gpt_examples_base}/action/shots.xlsx"
-        #return []
-
-    @property
-    def describe_paths(self):
-        return [f"{self.describe_base}/action/shots.xlsx"]
-        #return []
-    
-    def __init__(self, shots, shot_id, competition):
-        self.shots = shots
-        self.shot_id = shot_id
-        self.competition = competition
-        super().__init__()
-
-    def synthesize_text(self):
-
-        shots = self.shots
-        shot_data = shots.df_shots[shots.df_shots['id'] == self.shot_id]  # Fix here to use self.shot_id
-
-        if shot_data.empty:
-            raise ValueError(f"No shot found with ID {self.shot_id}")
-        
-        player_name = shot_data['player_name'].iloc[0]
-        team_name = shot_data['team_name'].iloc[0]
-
-        start_x = shot_data['start_x'].iloc[0]
-        start_y = shot_data['start_y'].iloc[0]
-        xG = shot_data['xG'].iloc[0]
-        goal_status = shot_data['goal'].fillna(False).iloc[0]
-        
-        # Map goal boolean to readable category
-        labels = {False: "didn't result in a goal.", True: 'was a goal!'}
-        goal_status_text = labels[goal_status]
-        #angle_to_goal = shot_data['angle_to_goal'].iloc[0]
-        distance_to_goal = shot_data['euclidean_distance_to_goal'].iloc[0]
-        distance_to_nearest_opponent = shot_data['distance_to_nearest_opponent'].iloc[0]
-        gk_dist_to_goal = shot_data['goalkeeper_distance_to_goal'].iloc[0]
-        minute= shot_data['minute'].iloc[0]
-
-        # Give a detailed description of the contributions to the shot
-        shot_contributions = self.shots.df_contributions[self.shots.df_contributions['id'] == self.shot_id]
-
-        shot_features = {
-            'vertical_distance_to_center': shot_data['vertical_distance_to_center'].iloc[0],
-            'euclidean_distance_to_goal': distance_to_goal,
-            'nearby_opponents_in_3_meters': shot_data['nearby_opponents_in_3_meters'].iloc[0],
-            'opponents_in_triangle': shot_data['opponents_in_triangle'].iloc[0],
-            'goalkeeper_distance_to_goal': gk_dist_to_goal,
-            #'header': shot_data['header'].iloc[0],
-            'distance_to_nearest_opponent': distance_to_nearest_opponent,
-            'angle_to_goalkeeper': shot_data['angle_to_goalkeeper'].iloc[0],
-            'shot_with_left_foot': shot_data['shot_with_left_foot'].iloc[0],
-            'shot_after_throw_in': shot_data['shot_after_throw_in'].iloc[0],
-            'shot_after_corner': shot_data['shot_after_corner'].iloc[0],
-            'shot_after_free_kick': shot_data['shot_after_free_kick'].iloc[0],
-            'shot_during_regular_play': shot_data['shot_during_regular_play'].iloc[0],
-            'pattern': shot_data['play_pattern_name'].iloc[0],
-        }
-
-        feature_descriptions = sentences.describe_shot_features(shot_features, self.competition)
-
-
-        shot_description = (
-            f"{player_name}'s shot from {team_name} {goal_status_text} "
-            f"This shot had an xG value of {xG:.2f}, which means that we estimate the chance of scoring from this situation as {xG * 100:.0f}%. "
-            f"{sentences.describe_xg(xG)} "
-            #f"The distance to goal was {distance_to_goal:.1f} meters and the distance to the nearest opponent was {distance_to_nearest_opponent:.1f} meters."
-        )
-        shot_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
-
-        shot_description += '\n' + sentences.describe_shot_contributions(shot_contributions, shot_features)
-
-        with st.expander("Synthesized Text"):
-            st.write(shot_description)
-        
-        return shot_description 
-    
-
-    def get_prompt_messages(self):
-        prompt = (
-            "You are a football commentator. You should write in an exciting and engaging way about a shot"
-            f"You should giva a four sentence summary of the shot taken by the player. "
-            "The first sentence should say whether it was a good chance or not, state the expected goals value and also state if it was a goal. "
-            "The second and third sentences should describe the most important factors that contributed to the quality of the chance. "
-            "If it was a good chance these two sentences chould explain what contributing factors made the shot dangerous. "
-            "If it wasn't particularly good chance then these two sentences chould explain why it wasn't a good chance. "
-            "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
-            )
-        return [{"role": "user", "content": prompt}]
-
-
-
 class CountryDescription(Description):
     output_token_limit = 150
 
@@ -522,4 +421,101 @@ class CountryDescription(Description):
             # "The third sentence should describe aspects in which the player is average and/or weak based on the statistics. "
             # "Finally, summarise exactly how the player compares to others in the same position. "
         )
+        return [{"role": "user", "content": prompt}]
+
+
+class ShotDescription(Description):
+
+    output_token_limit = 500
+
+    @property
+    def gpt_examples_path(self):
+        return f"{self.gpt_examples_base}/action/shots.xlsx"
+        #return []
+
+    @property
+    def describe_paths(self):
+        return [f"{self.describe_base}/action/shots.xlsx"]
+        #return []
+    
+    def __init__(self, shots, shot_id, competition):
+        self.shots = shots
+        self.shot_id = shot_id
+        self.competition = competition
+        super().__init__()
+
+    def synthesize_text(self):
+
+        shots = self.shots
+        shot_data = shots.df_shots[shots.df_shots['id'] == self.shot_id]  # Fix here to use self.shot_id
+
+        if shot_data.empty:
+            raise ValueError(f"No shot found with ID {self.shot_id}")
+        
+        player_name = shot_data['player_name'].iloc[0]
+        team_name = shot_data['team_name'].iloc[0]
+
+        start_x = shot_data['start_x'].iloc[0]
+        start_y = shot_data['start_y'].iloc[0]
+        xG = shot_data['xG'].iloc[0]
+        goal_status = shot_data['goal'].fillna(False).iloc[0]
+        
+        # Map goal boolean to readable category
+        labels = {False: "didn't result in a goal.", True: 'was a goal!'}
+        goal_status_text = labels[goal_status]
+        #angle_to_goal = shot_data['angle_to_goal'].iloc[0]
+        distance_to_goal = shot_data['euclidean_distance_to_goal'].iloc[0]
+        distance_to_nearest_opponent = shot_data['distance_to_nearest_opponent'].iloc[0]
+        gk_dist_to_goal = shot_data['goalkeeper_distance_to_goal'].iloc[0]
+        minute= shot_data['minute'].iloc[0]
+
+        # Give a detailed description of the contributions to the shot
+        shot_contributions = self.shots.df_contributions[self.shots.df_contributions['id'] == self.shot_id]
+
+        shot_features = {
+            'vertical_distance_to_center': shot_data['vertical_distance_to_center'].iloc[0],
+            'euclidean_distance_to_goal': distance_to_goal,
+            'nearby_opponents_in_3_meters': shot_data['nearby_opponents_in_3_meters'].iloc[0],
+            'opponents_in_triangle': shot_data['opponents_in_triangle'].iloc[0],
+            'goalkeeper_distance_to_goal': gk_dist_to_goal,
+            #'header': shot_data['header'].iloc[0],
+            'distance_to_nearest_opponent': distance_to_nearest_opponent,
+            'angle_to_goalkeeper': shot_data['angle_to_goalkeeper'].iloc[0],
+            'shot_with_left_foot': shot_data['shot_with_left_foot'].iloc[0],
+            'shot_after_throw_in': shot_data['shot_after_throw_in'].iloc[0],
+            'shot_after_corner': shot_data['shot_after_corner'].iloc[0],
+            'shot_after_free_kick': shot_data['shot_after_free_kick'].iloc[0],
+            'shot_during_regular_play': shot_data['shot_during_regular_play'].iloc[0],
+            'pattern': shot_data['play_pattern_name'].iloc[0],
+        }
+
+        feature_descriptions = sentences.describe_shot_features(shot_features, self.competition)
+
+
+        shot_description = (
+            f"{player_name}'s shot from {team_name} {goal_status_text} "
+            f"This shot had an xG value of {xG:.2f}, which means that we estimate the chance of scoring from this situation as {xG * 100:.0f}%. "
+            f"{sentences.describe_xg(xG)} "
+            #f"The distance to goal was {distance_to_goal:.1f} meters and the distance to the nearest opponent was {distance_to_nearest_opponent:.1f} meters."
+        )
+        shot_description += '\n'.join(feature_descriptions) + '\n'  # Add the detailed descriptions of the shot features
+
+        shot_description += '\n' + sentences.describe_shot_contributions(shot_contributions, shot_features)
+
+        with st.expander("Synthesized Text"):
+            st.write(shot_description)
+        
+        return shot_description 
+    
+
+    def get_prompt_messages(self):
+        prompt = (
+            "You are a football commentator. You should write in an exciting and engaging way about a shot"
+            f"You should giva a four sentence summary of the shot taken by the player. "
+            "The first sentence should say whether it was a good chance or not, state the expected goals value and also state if it was a goal. "
+            "The second and third sentences should describe the most important factors that contributed to the quality of the chance. "
+            "If it was a good chance these two sentences chould explain what contributing factors made the shot dangerous. "
+            "If it wasn't particularly good chance then these two sentences chould explain why it wasn't a good chance. "
+            "Depedning on the quality of the chance, the final sentence should either praise the player or offer advice about what to think about when shooting."
+            )
         return [{"role": "user", "content": prompt}]
